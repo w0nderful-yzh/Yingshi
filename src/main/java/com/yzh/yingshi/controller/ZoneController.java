@@ -21,7 +21,7 @@ import java.util.List;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 public class ZoneController {
 
     private final ZoneService zoneService;
@@ -42,4 +42,5 @@ public class ZoneController {
         return ApiResponse.success(zoneService.deleteZone(zoneId));
     }
 }
+
 

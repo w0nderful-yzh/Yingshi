@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/internal/tasks")
+@RequestMapping("/api/internal/tasks")
 public class InternalTaskReportController {
 
     private final FrameService frameService;
@@ -35,5 +35,6 @@ public class InternalTaskReportController {
         return ApiResponse.success(eventService.internalReport(taskId, request));
     }
 }
+
 
 

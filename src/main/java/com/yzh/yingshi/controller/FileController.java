@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/files")
+@RequestMapping("/api/files")
 public class FileController {
 
     private final FileService fileService;
@@ -25,4 +25,5 @@ public class FileController {
         return ApiResponse.success(fileService.uploadVideo(file, deviceId));
     }
 }
+
 

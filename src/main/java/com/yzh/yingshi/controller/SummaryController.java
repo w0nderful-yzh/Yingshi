@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/tasks")
+@RequestMapping("/api/tasks")
 public class SummaryController {
 
     private final SummaryService summaryService;
@@ -21,4 +21,5 @@ public class SummaryController {
         return ApiResponse.success(summaryService.taskSummary(taskId));
     }
 }
+
 

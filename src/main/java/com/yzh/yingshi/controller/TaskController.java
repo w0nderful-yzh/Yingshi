@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/tasks")
+@RequestMapping("/api/tasks")
 public class TaskController {
 
     private final TaskService taskService;
@@ -53,4 +53,5 @@ public class TaskController {
         return ApiResponse.success(taskService.cancel(taskId));
     }
 }
+
 

@@ -24,7 +24,7 @@ import java.util.List;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/devices")
+@RequestMapping("/api/devices")
 public class DeviceController {
 
     private final DeviceService deviceService;
@@ -60,4 +60,5 @@ public class DeviceController {
         return ApiResponse.success(deviceService.testConnectivity(id));
     }
 }
+
 

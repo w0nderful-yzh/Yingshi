@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 public class EventController {
 
     private final EventService eventService;
@@ -35,4 +35,5 @@ public class EventController {
         return ApiResponse.success(eventService.ack(eventId));
     }
 }
+
 

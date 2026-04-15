@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/tasks")
+@RequestMapping("/api/tasks")
 public class FrameController {
 
     private final FrameService frameService;
@@ -25,4 +25,5 @@ public class FrameController {
         return ApiResponse.success(frameService.listTaskFrames(taskId, page, size));
     }
 }
+
 

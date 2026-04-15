@@ -30,6 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception exception) {
+        exception.printStackTrace();
         return ApiResponse.fail(BusinessCode.INTERNAL_ERROR, exception.getMessage());
     }
 }

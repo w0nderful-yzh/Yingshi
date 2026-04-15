@@ -1,9 +1,17 @@
 spring:
   application:
     name: yingshi
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: Yangzihao2006.
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 server:
   port: 8080
@@ -13,3 +21,8 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+# JWT configuration
+jwt:
+  secret: "change-this-secret-to-a-secure-random-value"
+  expireSeconds: 7200

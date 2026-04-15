@@ -5,6 +5,9 @@ import lombok.Data;
 @Data
 public class AuthLoginVO {
     private String token;
+    private String tokenType;
     private Long expiresIn;
-    private UserInfoVO user;
+    private Long userId;
+    private String username;
+    private String role;
 }

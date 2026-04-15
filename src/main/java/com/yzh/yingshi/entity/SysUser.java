@@ -1,6 +1,7 @@
 package com.yzh.yingshi.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -15,8 +16,14 @@ public class SysUser {
     private String username;
     private String passwordHash;
     private String nickname;
+    
+    @TableField("role_code")
     private String role;
-    private Integer deleted;
+    
+    private String avatarUrl;
+    private Integer status;
+    private LocalDateTime lastLoginAt;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
