@@ -34,6 +34,14 @@ public class JwtUtil {
                 .compact();
     }
 
+    public Map<String, Object> parseToken(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
     public long getExpireSeconds() {
         return expireSeconds;
     }
