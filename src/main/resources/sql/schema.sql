@@ -128,6 +128,20 @@
       updated_at        DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务摘要统计表';
 
+  -- 宠物管理表
+  CREATE TABLE IF NOT EXISTS pet (
+      id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id     BIGINT       NOT NULL COMMENT '所属用户ID',
+      pet_name    VARCHAR(50)  NOT NULL COMMENT '宠物名',
+      pet_type    VARCHAR(20)  NOT NULL COMMENT '宠物类型: DOG/CAT/OTHER',
+      age         INT          COMMENT '年龄(月)',
+      gender      VARCHAR(10)  COMMENT '性别: MALE/FEMALE/UNKNOWN',
+      remark      VARCHAR(255) COMMENT '备注',
+      avatar_url  VARCHAR(500) COMMENT '头像URL',
+      created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+      INDEX idx_user (user_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宠物管理表';
 
   -- ============================================================
   -- 二、物联网设备接入与管理
