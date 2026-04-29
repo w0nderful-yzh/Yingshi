@@ -4,8 +4,7 @@ import lombok.Data;
 
 @Data
 public class FileUploadVO {
-    private String fileId;
+    private Long sourceId;
     private String fileName;
     private String fileUrl;
-    private Long size;
 }

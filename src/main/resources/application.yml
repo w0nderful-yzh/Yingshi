@@ -2,9 +2,9 @@ spring:
   application:
     name: yingshi
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: Yangzihao2006.
+    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: yzh666
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
