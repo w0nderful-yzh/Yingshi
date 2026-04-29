@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import bcrypt; print\\(bcrypt.hashpw\\(b'123456', bcrypt.gensalt\\(\\)\\).decode\\(\\)\\)\")",
+      "Bash(python -c \"import bcrypt; print\\(bcrypt.hashpw\\(b'123456', bcrypt.gensalt\\(\\)\\).decode\\(\\)\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(pip install *)",
+      "Bash(node -e \"const bcrypt = require\\('bcryptjs'\\); console.log\\(bcrypt.hashSync\\('123456', 10\\)\\);\")",
+      "Bash(cd /tmp)",
+      "Bash(javac -cp __TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt.java)",
+      "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt)",
+      "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar:__TRACKED_VAR__/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar GenBcrypt)",
+      "Bash(mvn compile *)"
+    ]
+  }
+}

@@ -1,11 +1,26 @@
 spring:
   application:
     name: yingshi
+
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
     username: yzh666
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+file:
+  upload:
+    path: uploads
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -22,7 +37,6 @@ springdoc:
   swagger-ui:
     enabled: true
 
-# JWT configuration
 jwt:
-  secret: "change-this-secret-to-a-secure-random-value"
+  secret: "yzh-super-secure-secret-key-2026-very-long"
   expireSeconds: 7200

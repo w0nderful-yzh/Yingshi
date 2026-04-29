@@ -2,6 +2,7 @@ package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
 import com.yzh.yingshi.dto.AuthLoginRequest;
+import com.yzh.yingshi.dto.AuthRegisterRequest;
 import com.yzh.yingshi.service.AuthService;
 import com.yzh.yingshi.vo.AuthLoginVO;
 import com.yzh.yingshi.vo.UserInfoVO;
@@ -22,6 +23,11 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @PostMapping("/register")
+    public ApiResponse<AuthLoginVO> register(@Valid @RequestBody AuthRegisterRequest request) {
+        return ApiResponse.success(authService.register(request));
+    }
+
     @PostMapping("/login")
     public ApiResponse<AuthLoginVO> login(@Valid @RequestBody AuthLoginRequest request) {
         return ApiResponse.success(authService.login(request));
@@ -34,8 +40,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout() {
-        return ApiResponse.success(authService.logout());
+        authService.logout();
+        return ApiResponse.success(null);
     }
 }
-
-
