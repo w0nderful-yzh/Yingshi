@@ -8,20 +8,6 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  servlet:
-    multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
-file:
-  upload:
-    path: uploads
-
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
@@ -40,3 +26,8 @@ springdoc:
 jwt:
   secret: "yzh-super-secure-secret-key-2026-very-long"
   expireSeconds: 7200
+
+ezviz:
+  app-key: e70fb747967f44deb4cabc17df64be5c
+  app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
+  base-url: https://open.ys7.com

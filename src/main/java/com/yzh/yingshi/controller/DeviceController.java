@@ -1,10 +1,9 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
-import com.yzh.yingshi.dto.DeviceCreateRequest;
-import com.yzh.yingshi.dto.DeviceUpdateRequest;
+import com.yzh.yingshi.dto.DeviceSyncResultDTO;
+import com.yzh.yingshi.dto.DeviceUpdateDTO;
 import com.yzh.yingshi.service.DeviceService;
-import com.yzh.yingshi.vo.ConnectivityTestVO;
 import com.yzh.yingshi.vo.DeviceVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,36 +28,45 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    @PostMapping
-    public ApiResponse<DeviceVO> create(@Valid @RequestBody DeviceCreateRequest request) {
-        return ApiResponse.success(deviceService.create(request));
+    @PostMapping("/sync")
+    public ApiResponse<DeviceSyncResultDTO> sync() {
+        return ApiResponse.success(deviceService.syncFromEzviz());
     }
 
     @GetMapping
-    public ApiResponse<List<DeviceVO>> list(@RequestParam(value = "keyword", required = false) String keyword,
-                                            @RequestParam(value = "status", required = false) String status) {
-        return ApiResponse.success(deviceService.list(keyword, status));
+    public ApiResponse<List<DeviceVO>> list(
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        return ApiResponse.success(deviceService.listDevices(status, sourceType, keyword));
     }
 
     @GetMapping("/{id}")
     public ApiResponse<DeviceVO> detail(@PathVariable("id") Long id) {
-        return ApiResponse.success(deviceService.detail(id));
+        return ApiResponse.success(deviceService.getDeviceById(id));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Boolean> update(@PathVariable("id") Long id, @Valid @RequestBody DeviceUpdateRequest request) {
-        return ApiResponse.success(deviceService.update(id, request));
+    public ApiResponse<DeviceVO> update(@PathVariable("id") Long id,
+                                        @Valid @RequestBody DeviceUpdateDTO dto) {
+        return ApiResponse.success(deviceService.updateDevice(id, dto));
+    }
+
+    @PutMapping("/{id}/disable")
+    public ApiResponse<Void> disable(@PathVariable("id") Long id) {
+        deviceService.disableDevice(id);
+        return ApiResponse.success(null);
+    }
+
+    @PutMapping("/{id}/enable")
+    public ApiResponse<Void> enable(@PathVariable("id") Long id) {
+        deviceService.enableDevice(id);
+        return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Boolean> delete(@PathVariable("id") Long id) {
-        return ApiResponse.success(deviceService.delete(id));
-    }
-
-    @PostMapping("/{id}/connectivity-test")
-    public ApiResponse<ConnectivityTestVO> testConnectivity(@PathVariable("id") Long id) {
-        return ApiResponse.success(deviceService.testConnectivity(id));
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
+        deviceService.deleteDevice(id);
+        return ApiResponse.success(null);
     }
 }
-
-

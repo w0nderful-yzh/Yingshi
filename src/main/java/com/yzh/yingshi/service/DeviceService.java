@@ -1,23 +1,24 @@
 package com.yzh.yingshi.service;
 
-import com.yzh.yingshi.dto.DeviceCreateRequest;
-import com.yzh.yingshi.dto.DeviceUpdateRequest;
-import com.yzh.yingshi.vo.ConnectivityTestVO;
+import com.yzh.yingshi.dto.DeviceSyncResultDTO;
+import com.yzh.yingshi.dto.DeviceUpdateDTO;
 import com.yzh.yingshi.vo.DeviceVO;
 
 import java.util.List;
 
 public interface DeviceService {
-    DeviceVO create(DeviceCreateRequest request);
 
-    List<DeviceVO> list(String keyword, String status);
+    DeviceSyncResultDTO syncFromEzviz();
 
-    DeviceVO detail(Long id);
+    List<DeviceVO> listDevices(String status, String sourceType, String keyword);
 
-    Boolean update(Long id, DeviceUpdateRequest request);
+    DeviceVO getDeviceById(Long id);
 
-    Boolean delete(Long id);
+    DeviceVO updateDevice(Long id, DeviceUpdateDTO dto);
 
-    ConnectivityTestVO testConnectivity(Long id);
+    void disableDevice(Long id);
+
+    void enableDevice(Long id);
+
+    void deleteDevice(Long id);
 }
-
