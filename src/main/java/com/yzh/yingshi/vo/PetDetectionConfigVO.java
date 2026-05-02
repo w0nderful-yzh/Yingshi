@@ -25,6 +25,16 @@ public class PetDetectionConfigVO {
 
     private String remark;
 
+    // ---- 异常行为检测阈值 ----
+
+    private Integer petAbsentMinutes;
+
+    private Integer activityWindowMinutes;
+
+    private Integer activityCountThreshold;
+
+    private Integer stillnessMinutes;
+
     private List<PetSafeZoneVO> safeZones;
 
     private LocalDateTime createdAt;

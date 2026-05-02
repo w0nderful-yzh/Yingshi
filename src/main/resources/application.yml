@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
-    username: yzh666
-    password: 123456
+    username: root
+    password: hh8527HH
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -31,3 +31,17 @@ ezviz:
   app-key: e70fb747967f44deb4cabc17df64be5c
   app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
   base-url: https://open.ys7.com
+
+# 宠物检测配置
+pet:
+  detection:
+    # 检测间隔(毫秒), 默认30秒
+    interval-ms: 30000
+    # 帧差像素阈值 (0-255), 越小越敏感, 建议20-35
+    pixel-threshold: 25
+    # 运动检测网格大小(像素)
+    grid-size: 20
+    # 最小运动区域面积(平方像素), 低于此值视为噪声忽略
+    min-area-pixels: 400
+    # 默认告警冷却时间(秒)
+    default-cooldown-seconds: 300

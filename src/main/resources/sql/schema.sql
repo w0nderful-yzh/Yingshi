@@ -88,6 +88,11 @@ CREATE TABLE IF NOT EXISTS pet_detection_config (
     enabled         TINYINT DEFAULT 1 COMMENT '是否启用检测: 0关闭 1开启',
     cooldown_seconds INT DEFAULT 300 COMMENT '告警冷却时间(秒), 避免重复告警',
     remark          VARCHAR(255) COMMENT '备注',
+    -- 异常行为检测阈值
+    pet_absent_minutes       INT DEFAULT 60  COMMENT '长时间未出现阈值(分钟)',
+    activity_window_minutes  INT DEFAULT 10  COMMENT '异常活跃检测窗口(分钟)',
+    activity_count_threshold INT DEFAULT 5   COMMENT '异常活跃触发次数阈值',
+    stillness_minutes        INT DEFAULT 30  COMMENT '长时间静止阈值(分钟)',
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user (user_id),
