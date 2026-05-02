@@ -27,7 +27,10 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         try {
             Map<String, Object> claims = jwtUtil.parseToken(token.substring(7));
-            request.setAttribute("userId", claims.get("userId"));
+            // JWT反序列化小数字为Integer, 统一转为Long避免下游ClassCastException
+            Object userIdObj = claims.get("userId");
+            Long userId = userIdObj instanceof Number ? ((Number) userIdObj).longValue() : null;
+            request.setAttribute("userId", userId);
             request.setAttribute("username", claims.get("username"));
             request.setAttribute("role", claims.get("role"));
             return true;
