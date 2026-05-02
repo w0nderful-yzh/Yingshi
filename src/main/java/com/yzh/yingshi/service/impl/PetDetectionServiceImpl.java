@@ -16,6 +16,7 @@ import com.yzh.yingshi.config.PetDetectionProperties;
 import com.yzh.yingshi.service.EzvizSnapshotService;
 import com.yzh.yingshi.service.PetAiDetector;
 import com.yzh.yingshi.service.PetDetectionService;
+import com.yzh.yingshi.vo.AlarmMessageVO;
 import com.yzh.yingshi.vo.PetDetectionConfigVO;
 import com.yzh.yingshi.vo.PetDetectionRecordVO;
 import com.yzh.yingshi.vo.PetDetectionResultVO;
@@ -84,6 +85,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         config.setCooldownSeconds(req.getCooldownSeconds() != null ?
                 req.getCooldownSeconds() : detectionProperties.getDefaultCooldownSeconds());
         config.setRemark(req.getRemark());
+        config.setPetAbsentMinutes(req.getPetAbsentMinutes() != null ? req.getPetAbsentMinutes() : 60);
+        config.setActivityWindowMinutes(req.getActivityWindowMinutes() != null ? req.getActivityWindowMinutes() : 10);
+        config.setActivityCountThreshold(req.getActivityCountThreshold() != null ? req.getActivityCountThreshold() : 5);
+        config.setStillnessMinutes(req.getStillnessMinutes() != null ? req.getStillnessMinutes() : 30);
         config.setCreatedAt(LocalDateTime.now());
         configMapper.insert(config);
 
@@ -107,6 +112,18 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         }
         if (req.getRemark() != null) {
             config.setRemark(req.getRemark());
+        }
+        if (req.getPetAbsentMinutes() != null) {
+            config.setPetAbsentMinutes(req.getPetAbsentMinutes());
+        }
+        if (req.getActivityWindowMinutes() != null) {
+            config.setActivityWindowMinutes(req.getActivityWindowMinutes());
+        }
+        if (req.getActivityCountThreshold() != null) {
+            config.setActivityCountThreshold(req.getActivityCountThreshold());
+        }
+        if (req.getStillnessMinutes() != null) {
+            config.setStillnessMinutes(req.getStillnessMinutes());
         }
         configMapper.updateById(config);
 
@@ -322,6 +339,57 @@ public class PetDetectionServiceImpl implements PetDetectionService {
             vo.setAlarmTriggered(r.getAlarmTriggered());
             vo.setSnapshotUrl(r.getSnapshotUrl());
             vo.setCreatedAt(r.getCreatedAt());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    // ==================== 异常行为告警查询 ====================
+
+    @Override
+    public List<AlarmMessageVO> listPetAlarms(String alarmType, Integer readStatus) {
+        LambdaQueryWrapper<AlarmMessage> query = new LambdaQueryWrapper<AlarmMessage>()
+                .eq(AlarmMessage::getSource, PetDetectionConstant.SOURCE_PET_DETECT)
+                .eq(AlarmMessage::getDeleted, 0);
+        if (alarmType != null && !alarmType.isBlank()) {
+            query.eq(AlarmMessage::getAlarmType, alarmType);
+        }
+        if (readStatus != null) {
+            query.eq(AlarmMessage::getReadStatus, readStatus);
+        }
+        query.orderByDesc(AlarmMessage::getAlarmTime);
+
+        List<AlarmMessage> alarms = alarmMessageMapper.selectList(query);
+        if (alarms.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 批量查设备名
+        Set<Long> deviceIds = alarms.stream()
+                .map(AlarmMessage::getDeviceId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toSet());
+        Map<Long, String> deviceNameMap = new HashMap<>();
+        if (!deviceIds.isEmpty()) {
+            deviceMapper.selectBatchIds(deviceIds)
+                    .forEach(d -> deviceNameMap.put(d.getId(), d.getDeviceName()));
+        }
+
+        return alarms.stream().map(a -> {
+            AlarmMessageVO vo = new AlarmMessageVO();
+            vo.setId(a.getId());
+            vo.setDeviceId(a.getDeviceId());
+            vo.setDeviceSerial(a.getDeviceSerial());
+            vo.setDeviceName(deviceNameMap.getOrDefault(a.getDeviceId(), null));
+            vo.setChannelNo(a.getChannelNo());
+            vo.setAlarmType(a.getAlarmType());
+            vo.setAlarmName(a.getAlarmName());
+            vo.setAlarmTime(a.getAlarmTime());
+            vo.setAlarmPicUrl(a.getAlarmPicUrl());
+            vo.setAlarmContent(a.getAlarmContent());
+            vo.setReadStatus(a.getReadStatus());
+            vo.setSource(a.getSource());
+            vo.setCreatedAt(a.getCreatedAt());
             return vo;
         }).collect(Collectors.toList());
     }
@@ -667,6 +735,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         vo.setEnabled(config.getEnabled());
         vo.setCooldownSeconds(config.getCooldownSeconds());
         vo.setRemark(config.getRemark());
+        vo.setPetAbsentMinutes(config.getPetAbsentMinutes());
+        vo.setActivityWindowMinutes(config.getActivityWindowMinutes());
+        vo.setActivityCountThreshold(config.getActivityCountThreshold());
+        vo.setStillnessMinutes(config.getStillnessMinutes());
         vo.setCreatedAt(config.getCreatedAt());
         vo.setUpdatedAt(config.getUpdatedAt());
         vo.setSafeZones(zones.stream().map(this::toZoneVO).collect(Collectors.toList()));

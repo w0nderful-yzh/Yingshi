@@ -1,14 +1,13 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.constant.PetDetectionConstant;
 import com.yzh.yingshi.dto.PetDetectionConfigRequest;
 import com.yzh.yingshi.dto.PetDetectionRecordQueryDTO;
 import com.yzh.yingshi.dto.PetSafeZoneRequest;
+import com.yzh.yingshi.service.PetAbnormalAnalysisService;
 import com.yzh.yingshi.service.PetDetectionService;
-import com.yzh.yingshi.vo.PetDetectionConfigVO;
-import com.yzh.yingshi.vo.PetDetectionRecordVO;
-import com.yzh.yingshi.vo.PetDetectionResultVO;
-import com.yzh.yingshi.vo.PetSafeZoneVO;
+import com.yzh.yingshi.vo.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -23,6 +22,7 @@ import java.util.List;
 public class PetDetectionController {
 
     private final PetDetectionService petDetectionService;
+    private final PetAbnormalAnalysisService petAbnormalAnalysisService;
 
     // ==================== 检测配置 ====================
 
@@ -102,5 +102,40 @@ public class PetDetectionController {
     @PostMapping("/configs/{id}/detect")
     public ApiResponse<PetDetectionResultVO> triggerDetection(@PathVariable Long id) {
         return ApiResponse.success(petDetectionService.triggerDetection(id));
+    }
+
+    // ==================== 手动触发异常分析 ====================
+
+    @PostMapping("/configs/{id}/analyze")
+    public ApiResponse<String> triggerAbnormalAnalysis(@PathVariable Long id) {
+        petAbnormalAnalysisService.analyzeConfig(id);
+        return ApiResponse.success("异常分析已执行, 请查看告警记录");
+    }
+
+    // ==================== 异常行为告警查询 ====================
+
+    @GetMapping("/alarms")
+    public ApiResponse<List<AlarmMessageVO>> listPetAlarms(
+            @RequestParam(required = false) String alarmType,
+            @RequestParam(required = false) Integer readStatus) {
+        return ApiResponse.success(petDetectionService.listPetAlarms(alarmType, readStatus));
+    }
+
+    @GetMapping("/alarms/absent")
+    public ApiResponse<List<AlarmMessageVO>> listAbsentAlarms() {
+        return ApiResponse.success(petDetectionService.listPetAlarms(
+                PetDetectionConstant.ALARM_TYPE_PET_ABSENT, null));
+    }
+
+    @GetMapping("/alarms/abnormal-activity")
+    public ApiResponse<List<AlarmMessageVO>> listAbnormalActivityAlarms() {
+        return ApiResponse.success(petDetectionService.listPetAlarms(
+                PetDetectionConstant.ALARM_TYPE_PET_ABNORMAL_ACTIVITY, null));
+    }
+
+    @GetMapping("/alarms/stillness")
+    public ApiResponse<List<AlarmMessageVO>> listStillnessAlarms() {
+        return ApiResponse.success(petDetectionService.listPetAlarms(
+                PetDetectionConstant.ALARM_TYPE_PET_LONG_STILLNESS, null));
     }
 }

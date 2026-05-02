@@ -155,6 +155,7 @@ public class EzvizVideoService {
         try {
             RestTemplate restTemplate = new RestTemplate();
             String response = restTemplate.postForObject(url, request, String.class);
+            log.info("萤石直播地址API完整响应: {}", response);
             JsonNode root = objectMapper.readTree(response);
 
             String code = String.valueOf(root.get("code").asText());
@@ -165,11 +166,18 @@ public class EzvizVideoService {
             }
             if (!"200".equals(code)) {
                 String msg = root.has("msg") ? root.get("msg").asText() : "unknown error";
-                log.error("萤石直播/回放地址接口失败, code={}, msg={}", code, msg);
+                log.error("萤石直播/回放地址接口失败, code={}, msg={}, 完整响应={}", code, msg, response);
                 return null;
             }
 
-            return root.get("data");
+            JsonNode data = root.get("data");
+            if (data != null) {
+                log.info("萤石返回data字段: {}", data.toString());
+                if (data.has("url")) {
+                    log.info("萤石返回播放URL: {}", data.get("url").asText());
+                }
+            }
+            return data;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {

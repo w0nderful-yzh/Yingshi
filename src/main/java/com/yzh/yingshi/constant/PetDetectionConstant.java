@@ -10,6 +10,15 @@ public class PetDetectionConstant {
     /** 告警类型: 宠物越界 */
     public static final String ALARM_TYPE_PET_OUT_OF_ZONE = "PET_OUT_OF_ZONE";
 
+    /** 告警类型: 宠物长时间未出现 */
+    public static final String ALARM_TYPE_PET_ABSENT = "PET_ABSENT";
+
+    /** 告警类型: 宠物异常活跃 */
+    public static final String ALARM_TYPE_PET_ABNORMAL_ACTIVITY = "PET_ABNORMAL_ACTIVITY";
+
+    /** 告警类型: 宠物长时间静止 */
+    public static final String ALARM_TYPE_PET_LONG_STILLNESS = "PET_LONG_STILLNESS";
+
     /** 区域类型: 矩形 */
     public static final String ZONE_TYPE_RECTANGLE = "RECTANGLE";
 

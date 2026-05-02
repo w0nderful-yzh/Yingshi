@@ -3,10 +3,7 @@ package com.yzh.yingshi.service;
 import com.yzh.yingshi.dto.PetDetectionConfigRequest;
 import com.yzh.yingshi.dto.PetDetectionRecordQueryDTO;
 import com.yzh.yingshi.dto.PetSafeZoneRequest;
-import com.yzh.yingshi.vo.PetDetectionConfigVO;
-import com.yzh.yingshi.vo.PetDetectionRecordVO;
-import com.yzh.yingshi.vo.PetDetectionResultVO;
-import com.yzh.yingshi.vo.PetSafeZoneVO;
+import com.yzh.yingshi.vo.*;
 
 import java.util.List;
 
@@ -41,4 +38,8 @@ public interface PetDetectionService {
     // ---- 手动触发检测 ----
 
     PetDetectionResultVO triggerDetection(Long configId);
+
+    // ---- 异常行为告警查询 ----
+
+    List<AlarmMessageVO> listPetAlarms(String alarmType, Integer readStatus);
 }
