@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +63,8 @@ public class EzvizVideoService {
         vo.setExpireTime(data.has("expireTime") ? data.get("expireTime").asText() : null);
         return vo;
     }
+
+
 
     public List<CloudRecordFileVO> listCloudRecordFiles(Long deviceId, String deviceSerial, Integer channelNo,
                                                          String startTime, String endTime) {
@@ -186,6 +191,19 @@ public class EzvizVideoService {
         }
     }
 
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern(VideoConstant.DATE_TIME_PATTERN);
+
+    private String toEpochMilliString(String time) {
+        return String.valueOf(
+                LocalDateTime.parse(time, DATE_TIME_FORMATTER)
+                        .atZone(ZoneId.of("Asia/Shanghai"))
+                        .toInstant()
+                        .toEpochMilli()
+        );
+}
+
     private JsonNode fetchCloudRecords(String accessToken, String deviceSerial, Integer channelNo,
                                         String startTime, String endTime) {
         String url = ezvizProperties.getBaseUrl() + "/api/lapp/video/by/time";
@@ -197,8 +215,8 @@ public class EzvizVideoService {
         params.add("accessToken", accessToken);
         params.add("deviceSerial", deviceSerial);
         params.add("channelNo", String.valueOf(channelNo));
-        params.add("startTime", startTime);
-        params.add("endTime", endTime);
+        params.add("startTime", toEpochMilliString(startTime));
+        params.add("endTime", toEpochMilliString(endTime));
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 

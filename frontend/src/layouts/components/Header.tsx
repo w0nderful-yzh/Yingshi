@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Layout, Badge, Dropdown, Avatar, Space, Button } from 'antd';
+import { Badge, Dropdown, Avatar, Space, Button } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -12,7 +12,9 @@ import { useAppStore } from '@/store/appStore';
 import { useAuthStore } from '@/store/authStore';
 import { useAlarmStore } from '@/store/alarmStore';
 
-const { Header: AntHeader } = Layout;
+/* ------------------------------------------------------------------ */
+/*  Header — 玻璃拟态顶栏                                               */
+/* ------------------------------------------------------------------ */
 
 export default function Header() {
   const navigate = useNavigate();
@@ -36,23 +38,29 @@ export default function Header() {
   };
 
   return (
-    <AntHeader className="!bg-white !px-4 flex items-center justify-between shadow-sm">
+    <header className="glass-header">
       <Button
         type="text"
         icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         onClick={toggleSidebar}
+        className="glass-header__toggle"
       />
       <Space size="middle">
         <Badge count={unreadCount} size="small">
-          <Button type="text" icon={<BellOutlined />} onClick={() => navigate('/alarms')} />
+          <Button
+            type="text"
+            icon={<BellOutlined />}
+            onClick={() => navigate('/alarms')}
+            className="glass-header__icon-btn"
+          />
         </Badge>
         <Dropdown menu={dropdownItems} placement="bottomRight">
-          <Space className="cursor-pointer">
-            <Avatar size="small" icon={<UserOutlined />} />
-            <span>{user?.nickname || user?.username || '-'}</span>
+          <Space className="cursor-pointer glass-header__user">
+            <Avatar size="small" icon={<UserOutlined />} className="glass-header__avatar" />
+            <span className="glass-header__username">{user?.nickname || user?.username || '-'}</span>
           </Space>
         </Dropdown>
       </Space>
-    </AntHeader>
+    </header>
   );
 }
