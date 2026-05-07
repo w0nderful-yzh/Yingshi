@@ -15,11 +15,14 @@ export default function PetFormModal({ open, pet, onOk, onCancel, loading }: Pro
 
   useEffect(() => {
     if (open) {
-      if (pet) {
-        form.setFieldsValue(pet);
-      } else {
-        form.resetFields();
-      }
+      // destroyOnClose 下表单字段需要一帧后才注册完毕
+      setTimeout(() => {
+        if (pet) {
+          form.setFieldsValue(pet);
+        } else {
+          form.resetFields();
+        }
+      }, 0);
     }
   }, [open, pet, form]);
 
@@ -37,7 +40,7 @@ export default function PetFormModal({ open, pet, onOk, onCancel, loading }: Pro
       confirmLoading={loading}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical">
         <Form.Item name="petName" label="宠物名称" rules={[{ required: true, message: '请输入宠物名称' }]}>
           <Input />
         </Form.Item>
