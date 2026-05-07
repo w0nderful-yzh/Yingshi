@@ -2,6 +2,15 @@ spring:
   application:
     name: yingshi
 
+  ai:
+    openai:
+      api-key: ${LLM_API_KEY}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
     username: yzh666
@@ -31,11 +40,6 @@ ezviz:
   app-key: e70fb747967f44deb4cabc17df64be5c
   app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
   base-url: https://open.ys7.com
-
-llm:
-  api-key: ${LLM_API_KEY}
-  base-url: https://api.deepseek.com
-  model: deepseek-chat
 
 # 宠物检测配置
 pet:
