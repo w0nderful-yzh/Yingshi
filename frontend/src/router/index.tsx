@@ -16,6 +16,7 @@ import SafeZoneEditorPage from '@/pages/detection/SafeZoneEditorPage';
 import DetectionRecordsPage from '@/pages/detection/DetectionRecordsPage';
 import AlarmListPage from '@/pages/alarm/AlarmListPage';
 import UserSettingsPage from '@/pages/settings/UserSettingsPage';
+import PetAiPage from '@/pages/pet-ai/PetAiPage';
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
           { path: 'video/live', element: <LivePreviewPage /> },
           { path: 'video/playback', element: <PlaybackPage /> },
           { path: 'pets', element: <PetListPage /> },
+          { path: 'pet-ai', element: <PetAiPage /> },
           { path: 'detection/configs', element: <DetectionConfigListPage /> },
           { path: 'detection/configs/new', element: <DetectionConfigFormPage /> },
           { path: 'detection/configs/:id/edit', element: <DetectionConfigFormPage /> },

@@ -32,6 +32,11 @@ ezviz:
   app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
   base-url: https://open.ys7.com
 
+llm:
+  api-key: ${LLM_API_KEY}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+
 # 宠物检测配置
 pet:
   detection:

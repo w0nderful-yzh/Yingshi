@@ -10,7 +10,9 @@
       "Bash(javac -cp __TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt.java)",
       "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt)",
       "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar:__TRACKED_VAR__/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar GenBcrypt)",
-      "Bash(mvn compile *)"
+      "Bash(mvn compile *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)"
     ]
   }
 }

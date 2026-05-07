@@ -10,6 +10,7 @@ import {
   FileSearchOutlined,
   BellOutlined,
   UserOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '@/store/appStore';
 
@@ -22,6 +23,7 @@ const menuItems = [
   { key: '/video/live', icon: <VideoCameraOutlined />, label: '实时监控' },
   { key: '/video/playback', icon: <PlayCircleOutlined />, label: '视频回放' },
   { key: '/pets', icon: <HeartOutlined />, label: '宠物管理' },
+  { key: '/pet-ai', icon: <RobotOutlined />, label: 'AI 助手' },
   { key: '/detection/configs', icon: <SettingOutlined />, label: '检测配置' },
   { key: '/detection/records', icon: <FileSearchOutlined />, label: '检测记录' },
   { key: '/alarms', icon: <BellOutlined />, label: '告警消息' },
