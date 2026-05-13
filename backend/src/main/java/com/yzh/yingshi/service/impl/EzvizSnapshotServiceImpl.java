@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yzh.yingshi.config.EzvizProperties;
 import com.yzh.yingshi.service.EzvizSnapshotService;
-import com.yzh.yingshi.service.EzvizTokenService;
+import com.yzh.yingshi.service.EzvizTokenResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -21,18 +21,18 @@ import org.springframework.web.client.RestTemplate;
 public class EzvizSnapshotServiceImpl implements EzvizSnapshotService {
 
     private final EzvizProperties ezvizProperties;
-    private final EzvizTokenService ezvizTokenService;
+    private final EzvizTokenResolver ezvizTokenResolver;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
     public String captureSnapshot(String deviceSerial, Integer channelNo) {
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         String url = doCapture(token, deviceSerial, channelNo);
 
         if (url == null) {
             log.warn("首次截图失败, 尝试刷新token后重试 deviceSerial={}", deviceSerial);
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             url = doCapture(token, deviceSerial, channelNo);
         }
 
@@ -76,7 +76,6 @@ public class EzvizSnapshotServiceImpl implements EzvizSnapshotService {
             String code = root.has("code") ? root.get("code").asText() : "";
             if ("10002".equals(code)) {
                 log.warn("萤石token过期, code=10002");
-                ezvizTokenService.clearToken();
                 return null;
             }
             if (!"200".equals(code)) {

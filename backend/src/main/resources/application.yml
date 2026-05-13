@@ -40,6 +40,9 @@ ezviz:
   app-key: e70fb747967f44deb4cabc17df64be5c
   app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
   base-url: https://open.ys7.com
+  oauth:
+    redirect-uri: ${EZVIZ_REDIRECT_URI:http://localhost:8080/api/ezviz/oauth/callback}
+    frontend-url: ${EZVIZ_FRONTEND_URL:http://localhost:5173}
 
 # 宠物检测配置
 pet:

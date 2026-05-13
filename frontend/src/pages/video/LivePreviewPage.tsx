@@ -14,7 +14,7 @@ export default function LivePreviewPage() {
   const [devices, setDevices] = useState<DeviceVO[]>([]);
   const [deviceId, setDeviceId] = useState<number | undefined>(initialDeviceId ? Number(initialDeviceId) : undefined);
   const [protocol, setProtocol] = useState(VideoProtocol.HLS);
-  const [quality, setQuality] = useState(VideoQuality.SMOOTH);
+  const [quality, setQuality] = useState(VideoQuality.HD);
   const [liveData, setLiveData] = useState<LiveUrlVO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +82,6 @@ export default function LivePreviewPage() {
             onChange={setQuality}
             style={{ width: 100 }}
             options={[
-              { label: '流畅', value: VideoQuality.SMOOTH },
               { label: '高清', value: VideoQuality.HD },
             ]}
           />

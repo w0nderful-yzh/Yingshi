@@ -3,7 +3,7 @@ package com.yzh.yingshi.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yzh.yingshi.config.EzvizProperties;
-import com.yzh.yingshi.service.EzvizTokenService;
+import com.yzh.yingshi.service.EzvizTokenResolver;
 import com.yzh.yingshi.service.PetAiDetector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ import java.util.*;
 public class EzvizPetAiDetector implements PetAiDetector {
 
     private final EzvizProperties ezvizProperties;
-    private final EzvizTokenService ezvizTokenService;
+    private final EzvizTokenResolver ezvizTokenResolver;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -44,12 +44,12 @@ public class EzvizPetAiDetector implements PetAiDetector {
         }
 
         // 先尝试宠物检测
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         results = callDetectionApi(token, imageUrl, PET_DETECTION_PATH);
 
         // token过期重试
         if (results == null) {
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             results = callDetectionApi(token, imageUrl, PET_DETECTION_PATH);
         }
 
@@ -89,7 +89,6 @@ public class EzvizPetAiDetector implements PetAiDetector {
                 int code = meta.has("code") ? meta.get("code").asInt() : -1;
                 if (code == 10002) {
                     log.warn("萤石AI接口token过期");
-                    ezvizTokenService.clearToken();
                     return null;
                 }
                 if (code != 200) {

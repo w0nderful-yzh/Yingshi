@@ -26,7 +26,7 @@ public class VideoConstant {
 
     public static final Integer DEFAULT_LIVE_PROTOCOL = PROTOCOL_HLS;
     public static final Integer DEFAULT_CLOUD_PLAYBACK_PROTOCOL = PROTOCOL_FLV;
-    public static final Integer DEFAULT_QUALITY = QUALITY_SMOOTH;
+    public static final Integer DEFAULT_QUALITY = QUALITY_HD;
     public static final Integer DEFAULT_EXPIRE_TIME = 86400;
 
     public static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";

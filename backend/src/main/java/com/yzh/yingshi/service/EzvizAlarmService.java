@@ -22,13 +22,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EzvizAlarmService {
 
-    private final EzvizTokenService ezvizTokenService;
+    private final EzvizTokenResolver ezvizTokenResolver;
     private final EzvizProperties ezvizProperties;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     public List<Map<String, Object>> listDeviceAlarms(String deviceSerial, Long startTime, Long endTime) {
-        String accessToken = ezvizTokenService.getAccessToken();
+        String accessToken = ezvizTokenResolver.resolve();
         return doListDeviceAlarms(accessToken, deviceSerial, startTime, endTime, true);
     }
 
@@ -62,8 +62,7 @@ public class EzvizAlarmService {
 
             if ("10002".equals(code) && allowRetry) {
                 log.warn("萤石token过期, code=10002, 刷新重试");
-                ezvizTokenService.clearToken();
-                String newToken = ezvizTokenService.refreshToken();
+                String newToken = ezvizTokenResolver.resolveWithRefresh();
                 return doListDeviceAlarms(newToken, deviceSerial, startTime, endTime, false);
             }
 

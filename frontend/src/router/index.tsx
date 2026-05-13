@@ -17,6 +17,8 @@ import DetectionRecordsPage from '@/pages/detection/DetectionRecordsPage';
 import AlarmListPage from '@/pages/alarm/AlarmListPage';
 import UserSettingsPage from '@/pages/settings/UserSettingsPage';
 import PetAiPage from '@/pages/pet-ai/PetAiPage';
+import DeviceBindPage from '@/pages/device/DeviceBindPage';
+import OAuthCallbackPage from '@/pages/device/OAuthCallbackPage';
 
 export const router = createBrowserRouter([
   {
@@ -38,7 +40,9 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'devices', element: <DeviceListPage /> },
+          { path: 'devices/bind', element: <DeviceBindPage /> },
           { path: 'devices/:id', element: <DeviceDetailPage /> },
+          { path: 'oauth/ezviz/callback', element: <OAuthCallbackPage /> },
           { path: 'video/live', element: <LivePreviewPage /> },
           { path: 'video/playback', element: <PlaybackPage /> },
           { path: 'pets', element: <PetListPage /> },

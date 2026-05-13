@@ -5,3 +5,4 @@ export * from './video';
 export * from './alarm';
 export * from './pet';
 export * from './petDetection';
+export * from './ezvizOAuth';
