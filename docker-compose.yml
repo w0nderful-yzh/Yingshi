@@ -6,7 +6,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       MYSQL_DATABASE: yingshi
       MYSQL_USER: yzh666
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-yingshi123}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
     ports:
       - "3306:3306"
     volumes:
@@ -28,7 +28,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
       SPRING_DATASOURCE_USERNAME: yzh666
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-yingshi123}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-123456}
       JWT_SECRET: ${JWT_SECRET:-yzh-super-secure-secret-key-2026-very-long}
       LLM_API_KEY: ${LLM_API_KEY}
       EZVIZ_APP_KEY: ${EZVIZ_APP_KEY:-e70fb747967f44deb4cabc17df64be5c}

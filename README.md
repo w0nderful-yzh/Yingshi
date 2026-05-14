@@ -63,20 +63,31 @@
 ### 方式一：Docker Compose 一键部署（推荐）
 
 ```bash
-# 在项目根目录执行
+# 1. clone 项目
+git clone <repo-url>
+cd Yingshi
+
+# 2. 复制环境变量模板并填入 API Key（AI 功能需要，不填也能启动）
+cp .env.example .env
+vim .env   # 填入 LLM_API_KEY
+
+# 3. 一键构建并启动
 docker compose up -d --build
 ```
 
 启动后访问 `http://localhost`，使用默认账号登录。
 
-可通过 `.env` 文件覆盖默认配置：
+> MySQL 数据库、表结构、默认管理员账号均自动初始化，无需手动操作。
+
+`.env` 可选配置项：
 
 ```bash
-MYSQL_PASSWORD=your_password
-JWT_SECRET=your_secret_key
-LLM_API_KEY=sk-xxx
-EZVIZ_APP_KEY=your_app_key
-EZVIZ_APP_SECRET=your_app_secret
+LLM_API_KEY=sk-xxx              # DeepSeek API Key，AI 功能必须
+MYSQL_ROOT_PASSWORD=root123     # MySQL root 密码，默认 root123
+MYSQL_PASSWORD=123456           # MySQL 应用账号密码，默认 123456
+JWT_SECRET=your_secret_key      # JWT 签名密钥
+EZVIZ_APP_KEY=your_app_key      # 萤石 AppKey
+EZVIZ_APP_SECRET=your_app_secret # 萤石 AppSecret
 ```
 
 ### 方式二：本地开发启动
