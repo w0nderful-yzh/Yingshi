@@ -24,16 +24,16 @@ import java.util.List;
 public class EzvizDeviceService {
 
     private final EzvizProperties ezvizProperties;
-    private final EzvizTokenService ezvizTokenService;
+    private final EzvizTokenResolver ezvizTokenResolver;
     private final ObjectMapper objectMapper;
 
     public List<JsonNode> listEzvizDevices() {
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         List<JsonNode> devices = fetchDeviceList(token);
 
         if (devices == null) {
             log.warn("首次获取设备列表失败，尝试刷新token后重试");
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             devices = fetchDeviceList(token);
             if (devices == null) {
                 throw new BusinessException(BusinessCode.INTERNAL_ERROR, "获取萤石设备列表失败");
@@ -41,6 +41,13 @@ public class EzvizDeviceService {
         }
 
         return devices;
+    }
+
+    /**
+     * 用指定 token 获取设备列表（给 OAuthService 用）
+     */
+    public List<JsonNode> listEzvizDevicesByToken(String accessToken) {
+        return fetchDeviceList(accessToken);
     }
 
     private List<JsonNode> fetchDeviceList(String accessToken) {
@@ -65,7 +72,6 @@ public class EzvizDeviceService {
 
             if ("10002".equals(code)) {
                 log.warn("萤石token过期或异常, code=10002");
-                ezvizTokenService.clearToken();
                 return null;
             }
 

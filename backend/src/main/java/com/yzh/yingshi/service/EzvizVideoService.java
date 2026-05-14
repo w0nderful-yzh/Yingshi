@@ -31,17 +31,17 @@ import java.util.List;
 public class EzvizVideoService {
 
     private final EzvizProperties ezvizProperties;
-    private final EzvizTokenService ezvizTokenService;
+    private final EzvizTokenResolver ezvizTokenResolver;
     private final ObjectMapper objectMapper;
 
     public LiveUrlVO getLiveAddress(Long deviceId, String deviceSerial, Integer channelNo,
                                     Integer protocol, Integer quality, Integer expireTime) {
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         JsonNode data = fetchLiveAddress(token, deviceSerial, channelNo, protocol, quality, expireTime, VideoConstant.ADDRESS_TYPE_LIVE, null, null);
 
         if (data == null) {
             log.warn("首次获取直播地址失败，尝试刷新token后重试");
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             data = fetchLiveAddress(token, deviceSerial, channelNo, protocol, quality, expireTime, VideoConstant.ADDRESS_TYPE_LIVE, null, null);
             if (data == null) {
                 throw new BusinessException(BusinessCode.INTERNAL_ERROR, "获取萤石直播地址失败");
@@ -68,12 +68,12 @@ public class EzvizVideoService {
 
     public List<CloudRecordFileVO> listCloudRecordFiles(Long deviceId, String deviceSerial, Integer channelNo,
                                                          String startTime, String endTime) {
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         JsonNode data = fetchCloudRecords(token, deviceSerial, channelNo, startTime, endTime);
 
         if (data == null) {
             log.warn("首次查询云录像失败，尝试刷新token后重试");
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             data = fetchCloudRecords(token, deviceSerial, channelNo, startTime, endTime);
         }
 
@@ -88,8 +88,8 @@ public class EzvizVideoService {
             vo.setDeviceId(deviceId);
             vo.setDeviceSerial(deviceSerial);
             vo.setChannelNo(channelNo);
-            vo.setStartTime(extractTextField(record, "startTime", "beginTime", "start_time"));
-            vo.setEndTime(extractTextField(record, "endTime", "end_time"));
+            vo.setStartTime(formatEpochMillis(extractTextField(record, "startTime", "beginTime", "start_time")));
+            vo.setEndTime(formatEpochMillis(extractTextField(record, "endTime", "end_time")));
             vo.setRecordType("CLOUD");
             vo.setFileType(extractTextField(record, "fileType", "type"));
             vo.setSource("EZVIZ_CLOUD");
@@ -101,12 +101,12 @@ public class EzvizVideoService {
     public CloudPlaybackUrlVO getCloudPlaybackAddress(Long deviceId, String deviceSerial, Integer channelNo,
                                                        String startTime, String endTime,
                                                        Integer protocol, Integer quality, Integer expireTime) {
-        String token = ezvizTokenService.getAccessToken();
+        String token = ezvizTokenResolver.resolve();
         JsonNode data = fetchLiveAddress(token, deviceSerial, channelNo, protocol, quality, expireTime, VideoConstant.ADDRESS_TYPE_CLOUD_PLAYBACK, startTime, endTime);
 
         if (data == null) {
             log.warn("首次获取云回放地址失败，尝试刷新token后重试");
-            token = ezvizTokenService.refreshToken();
+            token = ezvizTokenResolver.resolveWithRefresh();
             data = fetchLiveAddress(token, deviceSerial, channelNo, protocol, quality, expireTime, VideoConstant.ADDRESS_TYPE_CLOUD_PLAYBACK, startTime, endTime);
             if (data == null) {
                 throw new BusinessException(BusinessCode.INTERNAL_ERROR, "获取萤石云回放地址失败");
@@ -147,6 +147,7 @@ public class EzvizVideoService {
         params.add("quality", String.valueOf(quality));
         params.add("expireTime", String.valueOf(expireTime));
         params.add("type", String.valueOf(type));
+        params.add("code", "NJIXMQ");
 
         if (startTime != null) {
             params.add("startTime", startTime);
@@ -166,7 +167,6 @@ public class EzvizVideoService {
             String code = String.valueOf(root.get("code").asText());
             if ("10002".equals(code)) {
                 log.warn("萤石token过期, code=10002");
-                ezvizTokenService.clearToken();
                 return null;
             }
             if (!"200".equals(code)) {
@@ -176,12 +176,6 @@ public class EzvizVideoService {
             }
 
             JsonNode data = root.get("data");
-            if (data != null) {
-                log.info("萤石返回data字段: {}", data.toString());
-                if (data.has("url")) {
-                    log.info("萤石返回播放URL: {}", data.get("url").asText());
-                }
-            }
             return data;
         } catch (BusinessException e) {
             throw e;
@@ -228,7 +222,6 @@ public class EzvizVideoService {
             String code = String.valueOf(root.get("code").asText());
             if ("10002".equals(code)) {
                 log.warn("萤石token过期, code=10002");
-                ezvizTokenService.clearToken();
                 return null;
             }
             if (!"200".equals(code)) {
@@ -261,6 +254,18 @@ public class EzvizVideoService {
             }
         }
         return records;
+    }
+
+    private String formatEpochMillis(String millis) {
+        if (millis == null || millis.isBlank()) return null;
+        try {
+            long ts = Long.parseLong(millis);
+            return LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(ts), ZoneId.of("Asia/Shanghai"))
+                    .format(DATE_TIME_FORMATTER);
+        } catch (NumberFormatException e) {
+            return millis;
+        }
     }
 
     private String extractTextField(JsonNode node, String... fieldNames) {

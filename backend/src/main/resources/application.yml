@@ -2,10 +2,19 @@ spring:
   application:
     name: yingshi
 
+  ai:
+    openai:
+      api-key: ${LLM_API_KEY}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
-    username: yzh666
-    password: 123456
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true}
+    username: ${SPRING_DATASOURCE_USERNAME:yzh666}
+    password: ${SPRING_DATASOURCE_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -24,13 +33,16 @@ springdoc:
     enabled: true
 
 jwt:
-  secret: "yzh-super-secure-secret-key-2026-very-long"
+  secret: ${JWT_SECRET:yzh-super-secure-secret-key-2026-very-long}
   expireSeconds: 7200
 
 ezviz:
-  app-key: e70fb747967f44deb4cabc17df64be5c
-  app-secret: a7eb9aff632240cbf1e5610f15dc0ccc
+  app-key: ${EZVIZ_APP_KEY:e70fb747967f44deb4cabc17df64be5c}
+  app-secret: ${EZVIZ_APP_SECRET:a7eb9aff632240cbf1e5610f15dc0ccc}
   base-url: https://open.ys7.com
+  oauth:
+    redirect-uri: ${EZVIZ_REDIRECT_URI:http://localhost:8080/api/ezviz/oauth/callback}
+    frontend-url: ${EZVIZ_FRONTEND_URL:http://localhost:5173}
 
 # 宠物检测配置
 pet:

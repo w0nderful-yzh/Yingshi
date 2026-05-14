@@ -144,6 +144,41 @@ CREATE TABLE IF NOT EXISTS pet_detection_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宠物检测记录表';
 
 -- ============================================================
+-- C 端设备托管/授权表
+-- ============================================================
+
+-- 8. 用户萤石OAuth授权账户表
+CREATE TABLE IF NOT EXISTS user_ezviz_account (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id         BIGINT NOT NULL COMMENT 'sys_user.id',
+    access_token    VARCHAR(512) NOT NULL COMMENT '萤石用户级accessToken',
+    refresh_token   VARCHAR(512) COMMENT '萤石refreshToken',
+    expire_time     BIGINT COMMENT 'accessToken过期时间(毫秒时间戳)',
+    device_trust_id VARCHAR(128) COMMENT '萤石deviceTrustId',
+    status          TINYINT DEFAULT 1 COMMENT '1=有效 0=已撤销',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE INDEX uk_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户萤石OAuth授权账户';
+
+-- 9. 用户设备绑定表
+CREATE TABLE IF NOT EXISTS user_device (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id         BIGINT NOT NULL COMMENT 'sys_user.id',
+    device_serial   VARCHAR(64) NOT NULL COMMENT '萤石设备序列号',
+    device_name     VARCHAR(100) COMMENT '设备名称(来自萤石)',
+    device_type     VARCHAR(100) COMMENT '设备型号',
+    channel_no      INT DEFAULT 1 COMMENT '通道号',
+    bound_at        DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '绑定时间',
+    status          TINYINT DEFAULT 1 COMMENT '1=有效 0=已解绑',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE INDEX uk_user_device (user_id, device_serial),
+    INDEX idx_user_id (user_id),
+    INDEX idx_device_serial (device_serial)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户设备绑定表';
+
+-- ============================================================
 -- 数据初始化
 -- ============================================================
 

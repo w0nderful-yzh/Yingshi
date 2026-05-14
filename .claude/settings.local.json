@@ -10,7 +10,22 @@
       "Bash(javac -cp __TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt.java)",
       "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar GenBcrypt)",
       "Bash(java -cp .:__TRACKED_VAR__/.m2/repository/org/springframework/security/spring-security-crypto/6.3.9/spring-security-crypto-6.3.9.jar:__TRACKED_VAR__/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar GenBcrypt)",
-      "Bash(mvn compile *)"
+      "Bash(mvn compile *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "WebSearch",
+      "Bash(mvn clean *)",
+      "WebFetch(domain:open.ys7.com)",
+      "Bash(./mvnw compile *)",
+      "Bash(chmod +x ./mvnw)",
+      "Bash(node *)",
+      "Bash(curl -s \"https://backup-causal-twitch.ngrok-free.dev/api/ezviz/oauth/callback?authCode=test&state=test\" -H \"ngrok-skip-browser-warning: true\")",
+      "Bash(curl -s \"https://backup-causal-twitch.ngrok-free.dev/api/ezviz/oauth/callback?authCode=test&state=test123:1\" -H \"ngrok-skip-browser-warning: true\")",
+      "Bash(curl -s -v \"https://backup-causal-twitch.ngrok-free.dev/api/ezviz/oauth/callback?authCode=test&state=test123:1\" -H \"ngrok-skip-browser-warning: true\")",
+      "Bash(curl *)",
+      "Bash(docker compose *)",
+      "Bash(mysql -h 127.0.0.1 -u yzh666 -p123456 yingshi -e \"SELECT 1\")",
+      "Bash(docker exec yingshi-mysql *)"
     ]
   }
 }

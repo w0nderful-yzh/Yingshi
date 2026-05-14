@@ -14,4 +14,12 @@ public class EzvizProperties {
     private String appSecret;
 
     private String baseUrl;
+
+    private OAuth oauth = new OAuth();
+
+    @Data
+    public static class OAuth {
+        private String redirectUri;
+        private String frontendUrl;
+    }
 }
