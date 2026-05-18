@@ -24,8 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,14 +51,23 @@ public class EzvizOAuthService {
      */
     public EzvizAuthUrlVO generateAuthUrl(Long userId) {
         String state = UUID.randomUUID().toString().replace("-", "") + ":" + userId;
+        String redirectUri = resolveRedirectUri();
         String authUrl = ezvizProperties.getBaseUrl() + "/oauth2/authorize"
                 + "?appKey=" + ezvizProperties.getAppKey()
                 + "&responseType=code"
-                + "&redirectUri=" + ezvizProperties.getOauth().getRedirectUri()
-                + "&state=" + state;
+                + "&redirectUri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
 
-        log.info("生成萤石OAuth授权URL, userId={}, state={}", userId, state);
+        log.info("生成萤石OAuth授权URL, userId={}, redirectUri={}, state={}", userId, redirectUri, state);
         return new EzvizAuthUrlVO(authUrl, state);
+    }
+
+    private String resolveRedirectUri() {
+        String frontendUrl = ezvizProperties.getOauth().getFrontendUrl();
+        if (StringUtils.hasText(frontendUrl)) {
+            return frontendUrl.replaceAll("/+$", "") + "/oauth/ezviz/callback";
+        }
+        return ezvizProperties.getOauth().getRedirectUri();
     }
 
     /**

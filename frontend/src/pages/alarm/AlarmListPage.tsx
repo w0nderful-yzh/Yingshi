@@ -4,6 +4,7 @@ import { SyncOutlined, CheckOutlined, DeleteOutlined, SearchOutlined } from '@an
 import type { ColumnsType } from 'antd/es/table';
 import {
   getAlarms,
+  getAlarmDetail,
   markAlarmRead,
   markAllRead,
   deleteAlarm,
@@ -31,6 +32,7 @@ export default function AlarmListPage() {
   const [filters, setFilters] = useState({ deviceId: undefined as number | undefined, readStatus: undefined as number | undefined, keyword: '' });
   const [activeTab, setActiveTab] = useState('all');
   const [detailAlarm, setDetailAlarm] = useState<AlarmMessageVO | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const { decrementCount, resetCount, fetchUnreadCount } = useAlarmStore();
   const canWrite = canWriteRole(role);
@@ -122,10 +124,29 @@ export default function AlarmListPage() {
   };
 
   const handleViewDetail = async (record: AlarmMessageVO) => {
-    if (canWrite && record.readStatus === 0) {
-      await handleMarkRead(record.id);
+    setDetailLoading(true);
+    try {
+      if (canWrite && record.readStatus === 0) {
+        await handleMarkRead(record.id);
+      }
+      const detail = await getAlarmDetail(record.id);
+      setDetailAlarm(detail);
+    } catch (err: any) {
+      message.error(err.message);
+    } finally {
+      setDetailLoading(false);
     }
-    setDetailAlarm(record);
+  };
+
+  const formatRawJson = (rawJson?: string) => {
+    if (!rawJson) {
+      return '';
+    }
+    try {
+      return JSON.stringify(JSON.parse(rawJson), null, 2);
+    } catch {
+      return rawJson;
+    }
   };
 
   const columns: ColumnsType<AlarmMessageVO> = [
@@ -264,6 +285,7 @@ export default function AlarmListPage() {
         onCancel={() => setDetailAlarm(null)}
         footer={null}
         width={600}
+        confirmLoading={detailLoading}
       >
         {detailAlarm && (
           <div>
@@ -275,13 +297,21 @@ export default function AlarmListPage() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>设备: {detailAlarm.deviceName}</div>
               <div>序列号: {detailAlarm.deviceSerial}</div>
+              <div>告警ID: {detailAlarm.alarmId || '-'}</div>
               <div>类型: {AlarmTypeMap[detailAlarm.alarmType] || detailAlarm.alarmType}</div>
               <div>来源: {detailAlarm.source}</div>
               <div>时间: {formatDate(detailAlarm.alarmTime)}</div>
               <div>状态: {detailAlarm.readStatus === 0 ? '未读' : '已读'}</div>
+              <div>创建时间: {formatDate(detailAlarm.createdAt)}</div>
+              <div>更新时间: {detailAlarm.updatedAt ? formatDate(detailAlarm.updatedAt) : '-'}</div>
             </div>
             {detailAlarm.alarmContent && (
               <div className="mt-3 p-3 bg-gray-50 rounded text-sm">{detailAlarm.alarmContent}</div>
+            )}
+            {detailAlarm.rawJson && (
+              <pre className="mt-3 p-3 bg-slate-950 text-slate-100 rounded text-xs overflow-auto">
+                {formatRawJson(detailAlarm.rawJson)}
+              </pre>
             )}
           </div>
         )}

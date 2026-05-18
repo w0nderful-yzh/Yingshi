@@ -12,6 +12,8 @@ public interface AlarmService {
 
     List<AlarmMessageVO> listAlarms(AlarmQueryDTO dto);
 
+    AlarmMessageVO getAlarmDetail(Long id);
+
     long countUnread();
 
     void markRead(Long id);

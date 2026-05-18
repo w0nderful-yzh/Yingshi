@@ -191,7 +191,27 @@ public class AlarmServiceImpl implements AlarmService {
         // 批量查 device name
         Map<Long, String> deviceNameMap = buildDeviceNameMap(alarms);
 
-        return alarms.stream().map(a -> toVO(a, deviceNameMap)).collect(Collectors.toList());
+        return alarms.stream()
+                .map(a -> toVO(a, deviceNameMap.get(a.getDeviceId()), false))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AlarmMessageVO getAlarmDetail(Long id) {
+        AlarmMessage alarm = alarmMessageMapper.selectById(id);
+        if (alarm == null) {
+            throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "告警不存在");
+        }
+        assertAlarmAccessible(alarm);
+
+        String deviceName = null;
+        if (alarm.getDeviceId() != null) {
+            Device device = deviceMapper.selectById(alarm.getDeviceId());
+            if (device != null) {
+                deviceName = device.getDeviceName();
+            }
+        }
+        return toVO(alarm, deviceName, true);
     }
 
     @Override
@@ -264,12 +284,12 @@ public class AlarmServiceImpl implements AlarmService {
         return map;
     }
 
-    private AlarmMessageVO toVO(AlarmMessage a, Map<Long, String> deviceNameMap) {
+    private AlarmMessageVO toVO(AlarmMessage a, String deviceName, boolean includeDetailFields) {
         AlarmMessageVO vo = new AlarmMessageVO();
         vo.setId(a.getId());
         vo.setDeviceId(a.getDeviceId());
         vo.setDeviceSerial(a.getDeviceSerial());
-        vo.setDeviceName(deviceNameMap.getOrDefault(a.getDeviceId(), null));
+        vo.setDeviceName(deviceName);
         vo.setChannelNo(a.getChannelNo());
         vo.setAlarmType(a.getAlarmType());
         vo.setAlarmName(a.getAlarmName());
@@ -279,6 +299,11 @@ public class AlarmServiceImpl implements AlarmService {
         vo.setReadStatus(a.getReadStatus());
         vo.setSource(a.getSource());
         vo.setCreatedAt(a.getCreatedAt());
+        if (includeDetailFields) {
+            vo.setAlarmId(a.getAlarmId());
+            vo.setRawJson(a.getRawJson());
+            vo.setUpdatedAt(a.getUpdatedAt());
+        }
         return vo;
     }
 

@@ -5,6 +5,10 @@ export function getAlarms(params?: AlarmQueryDTO) {
   return request.get<any, AlarmMessageVO[]>('/api/alarms', { params });
 }
 
+export function getAlarmDetail(id: number) {
+  return request.get<any, AlarmMessageVO>(`/api/alarms/${id}`);
+}
+
 export function getUnreadCount() {
   return request.get<any, AlarmUnreadCountVO>('/api/alarms/unread-count');
 }

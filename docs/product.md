@@ -84,8 +84,9 @@
 1. 用户登录系统
 2. 进入“绑定萤石设备”
 3. 发起 OAuth 授权
-4. 回调完成后写入 `user_ezviz_account` 与 `user_device`
-5. 前端展示当前用户可访问设备
+4. 开发环境优先回调到前端 `/oauth/ezviz/callback`，再由前端调用后端完成绑定
+5. 后端写入 `user_ezviz_account` 与 `user_device`
+6. 前端展示当前用户可访问设备
 
 ### 5.2 检测配置流程
 

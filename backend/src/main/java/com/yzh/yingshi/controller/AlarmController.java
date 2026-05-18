@@ -51,6 +51,11 @@ public class AlarmController {
         return ApiResponse.success(alarmService.listAlarms(dto));
     }
 
+    @GetMapping("/{id}")
+    public ApiResponse<AlarmMessageVO> detail(@PathVariable("id") Long id) {
+        return ApiResponse.success(alarmService.getAlarmDetail(id));
+    }
+
     @GetMapping("/unread-count")
     public ApiResponse<AlarmUnreadCountVO> unreadCount() {
         return ApiResponse.success(new AlarmUnreadCountVO(alarmService.countUnread()));
