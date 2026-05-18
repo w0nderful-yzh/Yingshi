@@ -2,6 +2,7 @@ import { Card, Descriptions, Button, Avatar, message } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { roleLabel } from '@/utils/permission';
 
 export default function UserSettingsPage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function UserSettingsPage() {
           <Avatar size={80} icon={<UserOutlined />} />
           <div>
             <h3 className="text-lg m-0">{user?.nickname || user?.username}</h3>
-            <p className="text-gray-400 m-0">角色: {user?.role}</p>
+            <p className="text-gray-400 m-0">角色: {roleLabel(user?.role)}</p>
           </div>
         </div>
 
@@ -30,7 +31,7 @@ export default function UserSettingsPage() {
           <Descriptions.Item label="用户ID">{user?.id}</Descriptions.Item>
           <Descriptions.Item label="用户名">{user?.username}</Descriptions.Item>
           <Descriptions.Item label="昵称">{user?.nickname || '-'}</Descriptions.Item>
-          <Descriptions.Item label="角色">{user?.role}</Descriptions.Item>
+          <Descriptions.Item label="角色">{roleLabel(user?.role)}</Descriptions.Item>
         </Descriptions>
 
         <div className="mt-6">

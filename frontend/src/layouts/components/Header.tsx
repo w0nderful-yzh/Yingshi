@@ -11,6 +11,7 @@ import {
 import { useAppStore } from '@/store/appStore';
 import { useAuthStore } from '@/store/authStore';
 import { useAlarmStore } from '@/store/alarmStore';
+import { roleLabel } from '@/utils/permission';
 
 /* ------------------------------------------------------------------ */
 /*  Header — 玻璃拟态顶栏                                               */
@@ -57,7 +58,9 @@ export default function Header() {
         <Dropdown menu={dropdownItems} placement="bottomRight">
           <Space className="cursor-pointer glass-header__user">
             <Avatar size="small" icon={<UserOutlined />} className="glass-header__avatar" />
-            <span className="glass-header__username">{user?.nickname || user?.username || '-'}</span>
+            <span className="glass-header__username">
+              {user?.nickname || user?.username || '-'} {user?.role ? `· ${roleLabel(user.role)}` : ''}
+            </span>
           </Space>
         </Dropdown>
       </Space>

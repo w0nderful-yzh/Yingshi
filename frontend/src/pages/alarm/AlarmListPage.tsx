@@ -20,8 +20,11 @@ import type { AlarmMessageVO, DeviceVO } from '@/types';
 import { AlarmTypeMap, AlarmSource } from '@/utils/constants';
 import { formatDate } from '@/utils/format';
 import { useAlarmStore } from '@/store/alarmStore';
+import { useAuthStore } from '@/store/authStore';
+import { canWriteRole } from '@/utils/permission';
 
 export default function AlarmListPage() {
+  const role = useAuthStore((s) => s.user?.role);
   const [alarms, setAlarms] = useState<AlarmMessageVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [devices, setDevices] = useState<DeviceVO[]>([]);
@@ -30,6 +33,7 @@ export default function AlarmListPage() {
   const [detailAlarm, setDetailAlarm] = useState<AlarmMessageVO | null>(null);
   const [syncing, setSyncing] = useState(false);
   const { decrementCount, resetCount, fetchUnreadCount } = useAlarmStore();
+  const canWrite = canWriteRole(role);
 
   useEffect(() => {
     getDevices().then(setDevices).catch(() => {});
@@ -118,7 +122,7 @@ export default function AlarmListPage() {
   };
 
   const handleViewDetail = async (record: AlarmMessageVO) => {
-    if (record.readStatus === 0) {
+    if (canWrite && record.readStatus === 0) {
       await handleMarkRead(record.id);
     }
     setDetailAlarm(record);
@@ -175,14 +179,16 @@ export default function AlarmListPage() {
           <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
             查看
           </Button>
-          {record.readStatus === 0 && (
+          {canWrite && record.readStatus === 0 && (
             <Button type="link" size="small" icon={<CheckOutlined />} onClick={() => handleMarkRead(record.id)}>
               已读
             </Button>
           )}
-          <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canWrite && (
+            <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
+              <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -200,14 +206,16 @@ export default function AlarmListPage() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold m-0">告警消息</h2>
-        <Space>
-          <Button icon={<SyncOutlined />} onClick={handleSync} loading={syncing}>
-            同步告警
-          </Button>
-          <Button icon={<CheckOutlined />} onClick={handleMarkAllRead}>
-            全部已读
-          </Button>
-        </Space>
+        {canWrite && (
+          <Space>
+            <Button icon={<SyncOutlined />} onClick={handleSync} loading={syncing}>
+              同步告警
+            </Button>
+            <Button icon={<CheckOutlined />} onClick={handleMarkAllRead}>
+              全部已读
+            </Button>
+          </Space>
+        )}
       </div>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="mb-4" />

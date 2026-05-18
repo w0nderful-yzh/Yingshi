@@ -2,18 +2,22 @@ import { useEffect, useState } from 'react';
 import { Row, Col, Card, Button, Popconfirm, message, Empty, Avatar } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import { getPets, createPet, updatePet, deletePet } from '@/api/pet';
+import { useAuthStore } from '@/store/authStore';
 import type { PetVO, PetCreateRequest } from '@/types';
 import { PetTypeMap, GenderMap } from '@/utils/constants';
 import { formatAge } from '@/utils/format';
+import { canWriteRole } from '@/utils/permission';
 import PetFormModal from './PetFormModal';
 import PageLoading from '@/components/PageLoading';
 
 export default function PetListPage() {
+  const role = useAuthStore((s) => s.user?.role);
   const [pets, setPets] = useState<PetVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<PetVO | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const canWrite = canWriteRole(role);
 
   const fetchPets = async () => {
     setLoading(true);
@@ -76,9 +80,11 @@ export default function PetListPage() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold m-0">宠物管理</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          添加宠物
-        </Button>
+        {canWrite && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            添加宠物
+          </Button>
+        )}
       </div>
 
       {pets.length === 0 ? (
@@ -89,12 +95,16 @@ export default function PetListPage() {
             <Col key={pet.id} xs={24} sm={12} md={8} lg={6}>
               <Card
                 hoverable
-                actions={[
-                  <EditOutlined key="edit" onClick={() => handleEdit(pet)} />,
-                  <Popconfirm key="delete" title="确认删除此宠物？" onConfirm={() => handleDelete(pet.id)}>
-                    <DeleteOutlined />
-                  </Popconfirm>,
-                ]}
+                actions={
+                  canWrite
+                    ? [
+                        <EditOutlined key="edit" onClick={() => handleEdit(pet)} />,
+                        <Popconfirm key="delete" title="确认删除此宠物？" onConfirm={() => handleDelete(pet.id)}>
+                          <DeleteOutlined />
+                        </Popconfirm>,
+                      ]
+                    : undefined
+                }
               >
                 <Card.Meta
                   avatar={
@@ -119,13 +129,15 @@ export default function PetListPage() {
         </Row>
       )}
 
-      <PetFormModal
-        open={modalOpen}
-        pet={editingPet}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        loading={submitting}
-      />
+      {canWrite && (
+        <PetFormModal
+          open={modalOpen}
+          pet={editingPet}
+          onOk={handleSubmit}
+          onCancel={() => setModalOpen(false)}
+          loading={submitting}
+        />
+      )}
     </div>
   );
 }

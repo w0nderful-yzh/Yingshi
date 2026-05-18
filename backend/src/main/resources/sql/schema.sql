@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     username        VARCHAR(50)  NOT NULL UNIQUE COMMENT '用户名',
     password_hash   VARCHAR(100) NOT NULL COMMENT '加密密码',
     nickname        VARCHAR(50)  COMMENT '昵称',
-    role_code       VARCHAR(20)  DEFAULT 'ADMIN' COMMENT '角色: ADMIN/OPERATOR/VIEWER',
+    role_code       VARCHAR(20)  DEFAULT 'OPERATOR' COMMENT '角色: ADMIN/OPERATOR/VIEWER',
     avatar_url      VARCHAR(255) COMMENT '头像',
     status          TINYINT      DEFAULT 1 COMMENT '状态(1正常 0禁用)',
     last_login_at   DATETIME     COMMENT '最后登录时间',

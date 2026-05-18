@@ -1,6 +1,7 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.dto.DeviceSyncResultDTO;
 import com.yzh.yingshi.dto.DeviceUpdateDTO;
 import com.yzh.yingshi.service.DeviceService;
@@ -27,9 +28,11 @@ import java.util.List;
 public class DeviceController {
 
     private final DeviceService deviceService;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/sync")
     public ApiResponse<DeviceSyncResultDTO> sync() {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(deviceService.syncFromEzviz());
     }
 
@@ -49,23 +52,27 @@ public class DeviceController {
     @PutMapping("/{id}")
     public ApiResponse<DeviceVO> update(@PathVariable("id") Long id,
                                         @Valid @RequestBody DeviceUpdateDTO dto) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(deviceService.updateDevice(id, dto));
     }
 
     @PutMapping("/{id}/disable")
     public ApiResponse<Void> disable(@PathVariable("id") Long id) {
+        currentUserService.requireWriteAccess();
         deviceService.disableDevice(id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/enable")
     public ApiResponse<Void> enable(@PathVariable("id") Long id) {
+        currentUserService.requireWriteAccess();
         deviceService.enableDevice(id);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable("id") Long id) {
+        currentUserService.requireWriteAccess();
         deviceService.deleteDevice(id);
         return ApiResponse.success(null);
     }

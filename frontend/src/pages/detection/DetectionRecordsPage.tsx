@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, Table, Select, DatePicker, Button, Space, Tag, Modal, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -40,7 +40,7 @@ export default function DetectionRecordsPage() {
     });
   }, []);
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = { ...filters };
@@ -55,11 +55,11 @@ export default function DetectionRecordsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange, filters]);
 
   useEffect(() => {
     fetchRecords();
-  }, [filters]);
+  }, [fetchRecords]);
 
   const columns: ColumnsType<PetDetectionRecordVO> = [
     { title: '宠物', dataIndex: 'petName', key: 'petName', width: 100 },

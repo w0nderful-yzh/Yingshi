@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Button, Space, Modal, Form, Input, Select, message, Popconfirm } from 'antd';
 import { VideoCameraOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { getDeviceById, updateDevice, deleteDevice, enableDevice, disableDevice } from '@/api/device';
+import { useAuthStore } from '@/store/authStore';
 import type { DeviceVO, DeviceUpdateDTO } from '@/types';
+import { canWriteRole } from '@/utils/permission';
 import StatusTag from '@/components/StatusTag';
 import PageLoading from '@/components/PageLoading';
 import { formatDate } from '@/utils/format';
@@ -11,13 +13,15 @@ import { formatDate } from '@/utils/format';
 export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.user?.role);
   const [device, setDevice] = useState<DeviceVO | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [form] = Form.useForm();
+  const canWrite = canWriteRole(role);
 
-  const fetchDevice = async () => {
+  const fetchDevice = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -28,11 +32,11 @@ export default function DeviceDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchDevice();
-  }, [id]);
+  }, [fetchDevice]);
 
   const handleEdit = () => {
     if (!device) return;
@@ -98,11 +102,13 @@ export default function DeviceDetailPage() {
           <Button icon={<PlayCircleOutlined />} onClick={() => navigate(`/video/playback?deviceId=${device.id}`)}>
             视频回放
           </Button>
-          <Button onClick={handleEdit}>编辑</Button>
-          <Button onClick={handleToggleStatus}>{device.status === 'DISABLED' ? '启用' : '禁用'}</Button>
-          <Popconfirm title="确认删除此设备？" onConfirm={handleDelete}>
-            <Button danger>删除</Button>
-          </Popconfirm>
+          {canWrite && <Button onClick={handleEdit}>编辑</Button>}
+          {canWrite && <Button onClick={handleToggleStatus}>{device.status === 'DISABLED' ? '启用' : '禁用'}</Button>}
+          {canWrite && (
+            <Popconfirm title="确认删除此设备？" onConfirm={handleDelete}>
+              <Button danger>删除</Button>
+            </Popconfirm>
+          )}
         </Space>
       </div>
 
@@ -123,22 +129,24 @@ export default function DeviceDetailPage() {
         </Descriptions>
       </Card>
 
-      <Modal
-        title="编辑设备"
-        open={editOpen}
-        onOk={handleEditSubmit}
-        onCancel={() => setEditOpen(false)}
-        confirmLoading={editLoading}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="deviceName" label="设备名称" rules={[{ required: true, message: '请输入设备名称' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="remark" label="备注">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {canWrite && (
+        <Modal
+          title="编辑设备"
+          open={editOpen}
+          onOk={handleEditSubmit}
+          onCancel={() => setEditOpen(false)}
+          confirmLoading={editLoading}
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item name="deviceName" label="设备名称" rules={[{ required: true, message: '请输入设备名称' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="remark" label="备注">
+              <Input.TextArea rows={3} />
+            </Form.Item>
+          </Form>
+        </Modal>
+      )}
     </div>
   );
 }

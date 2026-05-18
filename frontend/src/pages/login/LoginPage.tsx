@@ -4,9 +4,7 @@ import { Form, Input, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { BorderBeam } from '@/components/magicui/BorderBeam';
-import { ArrowRight, Phone, PawPrint } from 'lucide-react';
-import cat1 from '@/assets/cat1.jpg';
-import cat2 from '@/assets/cat2.jpg';
+import { Activity, ArrowRight, BellRing, Phone, PawPrint, ShieldCheck } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  LoginPage — 两阶段登录页 (温暖治愈风)                                 */
@@ -69,13 +67,49 @@ export default function LoginPage() {
         {/* 右侧：图片展示区 */}
         <div className="hero-right">
           <div className="hero-image-wrapper">
-            {/* 主图片 (大胶囊) */}
             <div className="hero-image-main">
-              <img src={cat1} alt="Pet monitor main" />
+              <div className="hero-monitor-card">
+                <div className="hero-monitor-card__header">
+                  <div>
+                    <p className="hero-monitor-card__eyebrow">Live Monitoring</p>
+                    <h3 className="hero-monitor-card__title">宠物守护面板</h3>
+                  </div>
+                  <span className="hero-monitor-card__badge">AI 在线</span>
+                </div>
+                <div className="hero-monitor-grid">
+                  <div className="hero-monitor-stat">
+                    <ShieldCheck className="hero-monitor-stat__icon" />
+                    <span>安全区域</span>
+                    <strong>稳定守护</strong>
+                  </div>
+                  <div className="hero-monitor-stat">
+                    <BellRing className="hero-monitor-stat__icon" />
+                    <span>异常提醒</span>
+                    <strong>实时同步</strong>
+                  </div>
+                  <div className="hero-monitor-stat">
+                    <Activity className="hero-monitor-stat__icon" />
+                    <span>活动趋势</span>
+                    <strong>连续分析</strong>
+                  </div>
+                  <div className="hero-monitor-stat">
+                    <PawPrint className="hero-monitor-stat__icon" />
+                    <span>宠物档案</span>
+                    <strong>统一管理</strong>
+                  </div>
+                </div>
+                <div className="hero-monitor-card__footer">
+                  <span className="hero-monitor-dot" />
+                  <span>多设备联动中</span>
+                </div>
+              </div>
             </div>
-            {/* 次图片 (小胶囊，右上角部分重叠) */}
             <div className="hero-image-secondary">
-              <img src={cat2} alt="Pet monitor secondary" />
+              <div className="hero-secondary-card">
+                <span className="hero-secondary-pill">宠物识别</span>
+                <span className="hero-secondary-pill">行为分析</span>
+                <span className="hero-secondary-pill">回放检索</span>
+              </div>
             </div>
           </div>
         </div>

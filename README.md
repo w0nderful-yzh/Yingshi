@@ -129,6 +129,45 @@ npm run dev
 |--------|------|------|
 | admin  | 123456 | ADMIN |
 
+## 角色与权限
+
+当前版本提供三类角色：
+
+- `ADMIN` / `OPERATOR`：拥有业务读写权限
+- `VIEWER`：只读角色，只能查看设备、视频、告警和检测结果，不能执行同步、编辑、删除、授权等写操作
+
+系统同时按当前用户绑定的设备做数据隔离，设备、视频、告警、检测记录不会再按全局数据直接返回。
+
+> 自注册用户默认角色为 `OPERATOR`，方便当前 Demo 自助体验。
+
+## 开发说明
+
+- 首次使用前，请先在“绑定萤石设备”完成 OAuth 授权，再执行设备同步
+- 前端质量检查：`cd frontend && npm run lint && npm run build`
+- 后端最小测试入口：`cd backend && ./mvnw test`
+- GitHub Actions 已内置基础 CI，见 `.github/workflows/ci.yml`
+
+### 开发期设备访问开关
+
+为了方便本地摄像头和非萤石回调场景调试，当前后端默认开启了未绑定设备访问兜底：
+
+- 配置项：`app.auth.allow-unbound-device-access=true`
+- 配置位置：`backend/src/main/resources/application.yml`
+- 当前行为：当用户还没有绑定任何萤石设备时，允许直接访问数据库中已有的设备记录，便于本地联调设备管理、视频、检测和告警功能
+
+如果后期要恢复正式策略，请将下面配置改为 `false`：
+
+```yml
+app:
+  auth:
+    allow-unbound-device-access: false
+```
+
+改回 `false` 后的行为：
+
+- 用户必须先完成萤石设备绑定
+- 设备、视频、告警、检测记录将重新严格按 `user_device` 绑定关系做访问控制
+
 ## 项目结构
 
 ```

@@ -4,18 +4,22 @@ import { Table, Button, Input, Select, Space, Popconfirm, message, Tag } from 'a
 import { SyncOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getDevices, syncDevices, deleteDevice, enableDevice, disableDevice } from '@/api/device';
+import { useAuthStore } from '@/store/authStore';
 import type { DeviceVO } from '@/types';
+import { canWriteRole } from '@/utils/permission';
 import StatusTag from '@/components/StatusTag';
 import PageLoading from '@/components/PageLoading';
 
 export default function DeviceListPage() {
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.user?.role);
   const [devices, setDevices] = useState<DeviceVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('');
+  const canWrite = canWriteRole(role);
 
   const fetchDevices = useCallback(async () => {
     setLoading(true);
@@ -103,14 +107,18 @@ export default function DeviceListPage() {
           <Button type="link" size="small" onClick={() => navigate(`/devices/${record.id}`)}>
             详情
           </Button>
-          <Button type="link" size="small" onClick={() => handleToggleStatus(record)}>
-            {record.status === 'DISABLED' ? '启用' : '禁用'}
-          </Button>
-          <Popconfirm title="确认删除此设备？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger>
-              删除
+          {canWrite && (
+            <Button type="link" size="small" onClick={() => handleToggleStatus(record)}>
+              {record.status === 'DISABLED' ? '启用' : '禁用'}
             </Button>
-          </Popconfirm>
+          )}
+          {canWrite && (
+            <Popconfirm title="确认删除此设备？" onConfirm={() => handleDelete(record.id)}>
+              <Button type="link" size="small" danger>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -120,11 +128,13 @@ export default function DeviceListPage() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold m-0">设备管理</h2>
-        <Space>
-          <Button icon={<SyncOutlined />} onClick={handleSync} loading={syncing}>
-            从萤石同步
-          </Button>
-        </Space>
+        {canWrite && (
+          <Space>
+            <Button icon={<SyncOutlined />} onClick={handleSync} loading={syncing}>
+              从萤石同步
+            </Button>
+          </Space>
+        )}
       </div>
 
       <div className="flex gap-3 mb-4">

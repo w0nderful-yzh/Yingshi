@@ -26,6 +26,11 @@ mybatis-plus:
 server:
   port: 8080
 
+app:
+  auth:
+    # 开发阶段允许未绑定萤石账号时直接访问现有设备，便于本地摄像头调试
+    allow-unbound-device-access: true
+
 springdoc:
   api-docs:
     enabled: true

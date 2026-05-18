@@ -3,6 +3,7 @@ package com.yzh.yingshi.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.dto.DeviceSyncResultDTO;
 import com.yzh.yingshi.dto.DeviceUpdateDTO;
@@ -27,18 +28,28 @@ public class DeviceServiceImpl implements DeviceService {
 
     private final DeviceMapper deviceMapper;
     private final EzvizDeviceService ezvizDeviceService;
+    private final CurrentUserService currentUserService;
 
     private static final Set<String> VALID_STATUSES = Set.of("ONLINE", "OFFLINE", "DISABLED");
 
     @Override
     public DeviceSyncResultDTO syncFromEzviz() {
-        List<JsonNode> ezvizDevices = ezvizDeviceService.listEzvizDevices();
+        Set<String> authorizedSerials = currentUserService.getAuthorizedDeviceSerials();
+        if (authorizedSerials.isEmpty()) {
+            throw new BusinessException(BusinessCode.STATUS_CONFLICT, "请先绑定萤石设备后再同步");
+        }
 
-        int total = ezvizDevices.size();
+        List<JsonNode> ezvizDevices = ezvizDeviceService.listEzvizDevices();
+        List<JsonNode> matchedDevices = ezvizDevices.stream()
+                .filter(device -> device.hasNonNull("deviceSerial")
+                        && authorizedSerials.contains(device.get("deviceSerial").asText()))
+                .collect(Collectors.toList());
+
+        int total = matchedDevices.size();
         int inserted = 0;
         int updated = 0;
 
-        for (JsonNode ezvizDevice : ezvizDevices) {
+        for (JsonNode ezvizDevice : matchedDevices) {
             String deviceSerial = ezvizDevice.get("deviceSerial").asText();
             String deviceName = ezvizDevice.get("deviceName").asText();
             String deviceType = ezvizDevice.has("deviceType") ? ezvizDevice.get("deviceType").asText() : null;
@@ -83,7 +94,13 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public List<DeviceVO> listDevices(String status, String sourceType, String keyword) {
+        Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+        if (authorizedDeviceIds.isEmpty()) {
+            return List.of();
+        }
+
         QueryWrapper<Device> query = new QueryWrapper<>();
+        query.in("id", authorizedDeviceIds);
 
         if (StringUtils.hasText(status)) {
             query.eq("status", status);
@@ -109,6 +126,7 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
         return toVO(device);
     }
 
@@ -118,6 +136,7 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
 
         if (StringUtils.hasText(dto.getStatus()) && !VALID_STATUSES.contains(dto.getStatus())) {
             throw new BusinessException(BusinessCode.PARAM_INVALID, "status 只允许 ONLINE / OFFLINE / DISABLED");
@@ -141,6 +160,7 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
         device.setStatus("DISABLED");
         deviceMapper.updateById(device);
     }
@@ -151,6 +171,7 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
         device.setStatus("OFFLINE");
         deviceMapper.updateById(device);
     }
@@ -161,6 +182,7 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
         deviceMapper.deleteById(id);
     }
 

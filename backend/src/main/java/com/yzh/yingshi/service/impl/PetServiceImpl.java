@@ -1,13 +1,13 @@
 package com.yzh.yingshi.service.impl;
 
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.dto.PetCreateRequest;
 import com.yzh.yingshi.entity.Pet;
 import com.yzh.yingshi.mapper.PetMapper;
 import com.yzh.yingshi.service.PetService;
 import com.yzh.yingshi.vo.PetVO;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 public class PetServiceImpl implements PetService {
 
     private final PetMapper petMapper;
-    private final HttpServletRequest request;
+    private final CurrentUserService currentUserService;
 
     @Override
     public PetVO create(PetCreateRequest dto) {
         Pet pet = new Pet();
-        pet.setUserId(getCurrentUserId());
+        pet.setUserId(currentUserService.requireCurrentUserId());
         pet.setPetName(dto.getPetName());
         pet.setPetType(dto.getPetType());
         pet.setAge(dto.getAge());
@@ -43,9 +43,7 @@ public class PetServiceImpl implements PetService {
         if (pet == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "宠物不存在");
         }
-        if (!pet.getUserId().equals(getCurrentUserId())) {
-            throw new BusinessException(BusinessCode.FORBIDDEN, "无权操作");
-        }
+        currentUserService.assertPetOwned(pet);
         pet.setPetName(dto.getPetName());
         pet.setPetType(dto.getPetType());
         pet.setAge(dto.getAge());
@@ -62,9 +60,7 @@ public class PetServiceImpl implements PetService {
         if (pet == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "宠物不存在");
         }
-        if (!pet.getUserId().equals(getCurrentUserId())) {
-            throw new BusinessException(BusinessCode.FORBIDDEN, "无权操作");
-        }
+        currentUserService.assertPetOwned(pet);
         petMapper.deleteById(id);
     }
 
@@ -74,12 +70,13 @@ public class PetServiceImpl implements PetService {
         if (pet == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "宠物不存在");
         }
+        currentUserService.assertPetOwned(pet);
         return toVO(pet);
     }
 
     @Override
     public List<PetVO> listAll() {
-        Long userId = getCurrentUserId();
+        Long userId = currentUserService.requireCurrentUserId();
         List<Pet> pets = petMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Pet>()
                         .eq("user_id", userId)
@@ -101,7 +98,4 @@ public class PetServiceImpl implements PetService {
         return vo;
     }
 
-    private Long getCurrentUserId() {
-        return (Long) request.getAttribute("userId");
-    }
 }

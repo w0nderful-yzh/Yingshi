@@ -1,6 +1,7 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.dto.AlarmQueryDTO;
 import com.yzh.yingshi.dto.AlarmSyncResultDTO;
 import com.yzh.yingshi.service.AlarmService;
@@ -26,9 +27,11 @@ import java.util.List;
 public class AlarmController {
 
     private final AlarmService alarmService;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/sync")
     public ApiResponse<AlarmSyncResultDTO> sync() {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(alarmService.syncFromEzviz());
     }
 
@@ -55,18 +58,21 @@ public class AlarmController {
 
     @PutMapping("/{id}/read")
     public ApiResponse<Void> markRead(@PathVariable("id") Long id) {
+        currentUserService.requireWriteAccess();
         alarmService.markRead(id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/read-all")
     public ApiResponse<Void> markAllRead(@RequestParam(required = false) Long deviceId) {
+        currentUserService.requireWriteAccess();
         alarmService.markAllRead(deviceId);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable("id") Long id) {
+        currentUserService.requireWriteAccess();
         alarmService.deleteAlarm(id);
         return ApiResponse.success(null);
     }

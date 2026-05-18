@@ -2,6 +2,7 @@ package com.yzh.yingshi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.UserRole;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.common.util.JwtUtil;
 import com.yzh.yingshi.dto.AuthLoginRequest;
@@ -41,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
+        user.setRole(UserRole.OPERATOR);
         user.setStatus(1);
         user.setCreatedAt(LocalDateTime.now());
         sysUserMapper.insert(user);

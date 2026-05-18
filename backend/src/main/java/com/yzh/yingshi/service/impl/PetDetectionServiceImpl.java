@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.constant.AlarmConstant;
 import com.yzh.yingshi.constant.PetDetectionConstant;
@@ -21,7 +22,6 @@ import com.yzh.yingshi.vo.PetDetectionConfigVO;
 import com.yzh.yingshi.vo.PetDetectionRecordVO;
 import com.yzh.yingshi.vo.PetDetectionResultVO;
 import com.yzh.yingshi.vo.PetSafeZoneVO;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
     private final DeviceMapper deviceMapper;
     private final PetMapper petMapper;
     private final AlarmMessageMapper alarmMessageMapper;
-    private final HttpServletRequest request;
+    private final CurrentUserService currentUserService;
     private final EzvizSnapshotService ezvizSnapshotService;
     private final EzvizPetAiDetector ezvizPetAiDetector;
     private final PetDetectionProperties detectionProperties;
@@ -56,7 +56,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
     @Override
     @Transactional
     public PetDetectionConfigVO createConfig(PetDetectionConfigRequest req) {
-        Long userId = getCurrentUserId();
+        Long userId = currentUserService.requireCurrentUserId();
 
         Pet pet = petMapper.selectById(req.getPetId());
         if (pet == null || !pet.getUserId().equals(userId)) {
@@ -67,6 +67,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         if (device == null || device.getDeleted() != null && device.getDeleted() == 1) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
 
         // 检查是否已存在相同宠物+设备的配置
         LambdaQueryWrapper<PetDetectionConfig> dupQuery = new LambdaQueryWrapper<PetDetectionConfig>()
@@ -166,7 +167,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
 
     @Override
     public List<PetDetectionConfigVO> listConfigs() {
-        Long userId = getCurrentUserId();
+        Long userId = currentUserService.requireCurrentUserId();
         LambdaQueryWrapper<PetDetectionConfig> query = new LambdaQueryWrapper<PetDetectionConfig>()
                 .eq(PetDetectionConfig::getUserId, userId)
                 .orderByDesc(PetDetectionConfig::getUpdatedAt);
@@ -282,9 +283,26 @@ public class PetDetectionServiceImpl implements PetDetectionService {
 
     @Override
     public List<PetDetectionRecordVO> listRecords(PetDetectionRecordQueryDTO dto) {
-        Long userId = getCurrentUserId();
+        Long userId = currentUserService.requireCurrentUserId();
+        List<PetDetectionConfig> accessibleConfigs = configMapper.selectList(
+                new LambdaQueryWrapper<PetDetectionConfig>()
+                        .eq(PetDetectionConfig::getUserId, userId)
+        );
+        Set<Long> accessibleConfigIds = accessibleConfigs.stream()
+                .map(PetDetectionConfig::getId)
+                .collect(Collectors.toSet());
+        if (accessibleConfigIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (dto.getDetectionConfigId() != null && !accessibleConfigIds.contains(dto.getDetectionConfigId())) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "无权访问该检测配置");
+        }
+        if (dto.getDeviceId() != null) {
+            currentUserService.assertDeviceAccessible(dto.getDeviceId());
+        }
 
         LambdaQueryWrapper<PetDetectionRecord> query = new LambdaQueryWrapper<>();
+        query.in(PetDetectionRecord::getDetectionConfigId, accessibleConfigIds);
         if (dto.getDetectionConfigId() != null) {
             query.eq(PetDetectionRecord::getDetectionConfigId, dto.getDetectionConfigId());
         }
@@ -347,9 +365,15 @@ public class PetDetectionServiceImpl implements PetDetectionService {
 
     @Override
     public List<AlarmMessageVO> listPetAlarms(String alarmType, Integer readStatus) {
+        Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+        if (authorizedDeviceIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         LambdaQueryWrapper<AlarmMessage> query = new LambdaQueryWrapper<AlarmMessage>()
                 .eq(AlarmMessage::getSource, PetDetectionConstant.SOURCE_PET_DETECT)
-                .eq(AlarmMessage::getDeleted, 0);
+                .eq(AlarmMessage::getDeleted, 0)
+                .in(AlarmMessage::getDeviceId, authorizedDeviceIds);
         if (alarmType != null && !alarmType.isBlank()) {
             query.eq(AlarmMessage::getAlarmType, alarmType);
         }
@@ -774,12 +798,8 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         return vo;
     }
 
-    private Long getCurrentUserId() {
-        return (Long) request.getAttribute("userId");
-    }
-
     private void checkOwnership(Long ownerUserId) {
-        Long userId = getCurrentUserId();
+        Long userId = currentUserService.requireCurrentUserId();
         if (!ownerUserId.equals(userId)) {
             throw new BusinessException(BusinessCode.FORBIDDEN, "无权操作");
         }

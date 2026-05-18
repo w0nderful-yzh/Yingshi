@@ -1,6 +1,9 @@
 package com.yzh.yingshi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
+import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.constant.AlarmConstant;
 import com.yzh.yingshi.constant.PetDetectionConstant;
 import com.yzh.yingshi.entity.*;
@@ -23,6 +26,7 @@ public class PetAbnormalAnalysisServiceImpl implements PetAbnormalAnalysisServic
     private final DeviceMapper deviceMapper;
     private final PetMapper petMapper;
     private final AlarmMessageMapper alarmMessageMapper;
+    private final CurrentUserService currentUserService;
 
     @Override
     public void analyzeAll() {
@@ -58,6 +62,10 @@ public class PetAbnormalAnalysisServiceImpl implements PetAbnormalAnalysisServic
         if (config == null) {
             log.warn("手动异常分析: 配置不存在 configId={}", configId);
             return;
+        }
+        if (currentUserService.hasAuthenticatedUser()
+                && !currentUserService.requireCurrentUserId().equals(config.getUserId())) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "无权操作该检测配置");
         }
         Device device = deviceMapper.selectById(config.getDeviceId());
         Pet pet = petMapper.selectById(config.getPetId());

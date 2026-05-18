@@ -1,6 +1,7 @@
 package com.yzh.yingshi.service.impl;
 
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.constant.VideoConstant;
 import com.yzh.yingshi.dto.CloudPlaybackUrlRequestDTO;
@@ -30,6 +31,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final DeviceMapper deviceMapper;
     private final EzvizVideoService ezvizVideoService;
+    private final CurrentUserService currentUserService;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern(VideoConstant.DATE_TIME_PATTERN);
 
@@ -87,6 +89,7 @@ public class VideoServiceImpl implements VideoService {
         if (device == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
+        currentUserService.assertDeviceAccessible(device);
 
         if (!VideoConstant.SOURCE_TYPE_EZVIZ.equals(device.getSourceType())) {
             throw new BusinessException(BusinessCode.PARAM_INVALID, "当前设备不是萤石设备");

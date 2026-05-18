@@ -1,6 +1,7 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.dto.PetCreateRequest;
 import com.yzh.yingshi.service.PetService;
 import com.yzh.yingshi.vo.PetVO;
@@ -18,19 +19,23 @@ import java.util.List;
 public class PetController {
 
     private final PetService petService;
+    private final CurrentUserService currentUserService;
 
     @PostMapping
     public ApiResponse<PetVO> create(@Valid @RequestBody PetCreateRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petService.create(request));
     }
 
     @PutMapping("/{id}")
     public ApiResponse<PetVO> update(@PathVariable Long id, @Valid @RequestBody PetCreateRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         petService.delete(id);
         return ApiResponse.success(null);
     }
