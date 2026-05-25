@@ -31,5 +31,11 @@ public class AlarmMessageVO {
 
     private String source;
 
+    private String alarmId;
+
+    private String rawJson;
+
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

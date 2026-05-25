@@ -1,6 +1,7 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.constant.PetDetectionConstant;
 import com.yzh.yingshi.dto.PetDetectionConfigRequest;
 import com.yzh.yingshi.dto.PetDetectionRecordQueryDTO;
@@ -23,22 +24,26 @@ public class PetDetectionController {
 
     private final PetDetectionService petDetectionService;
     private final PetAbnormalAnalysisService petAbnormalAnalysisService;
+    private final CurrentUserService currentUserService;
 
     // ==================== 检测配置 ====================
 
     @PostMapping("/configs")
     public ApiResponse<PetDetectionConfigVO> createConfig(@Valid @RequestBody PetDetectionConfigRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petDetectionService.createConfig(request));
     }
 
     @PutMapping("/configs/{id}")
     public ApiResponse<PetDetectionConfigVO> updateConfig(@PathVariable Long id,
                                                            @Valid @RequestBody PetDetectionConfigRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petDetectionService.updateConfig(id, request));
     }
 
     @DeleteMapping("/configs/{id}")
     public ApiResponse<Void> deleteConfig(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         petDetectionService.deleteConfig(id);
         return ApiResponse.success(null);
     }
@@ -57,17 +62,20 @@ public class PetDetectionController {
 
     @PostMapping("/zones")
     public ApiResponse<PetSafeZoneVO> createSafeZone(@Valid @RequestBody PetSafeZoneRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petDetectionService.createSafeZone(request));
     }
 
     @PutMapping("/zones/{id}")
     public ApiResponse<PetSafeZoneVO> updateSafeZone(@PathVariable Long id,
                                                       @Valid @RequestBody PetSafeZoneRequest request) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petDetectionService.updateSafeZone(id, request));
     }
 
     @DeleteMapping("/zones/{id}")
     public ApiResponse<Void> deleteSafeZone(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         petDetectionService.deleteSafeZone(id);
         return ApiResponse.success(null);
     }
@@ -101,6 +109,7 @@ public class PetDetectionController {
 
     @PostMapping("/configs/{id}/detect")
     public ApiResponse<PetDetectionResultVO> triggerDetection(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         return ApiResponse.success(petDetectionService.triggerDetection(id));
     }
 
@@ -108,6 +117,7 @@ public class PetDetectionController {
 
     @PostMapping("/configs/{id}/analyze")
     public ApiResponse<String> triggerAbnormalAnalysis(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         petAbnormalAnalysisService.analyzeConfig(id);
         return ApiResponse.success("异常分析已执行, 请查看告警记录");
     }

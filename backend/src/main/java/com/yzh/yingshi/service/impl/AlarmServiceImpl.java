@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.constant.AlarmConstant;
 import com.yzh.yingshi.dto.AlarmQueryDTO;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -39,6 +41,7 @@ public class AlarmServiceImpl implements AlarmService {
     private final AlarmMessageMapper alarmMessageMapper;
     private final EzvizAlarmService ezvizAlarmService;
     private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -50,6 +53,15 @@ public class AlarmServiceImpl implements AlarmService {
                 .eq(Device::getSourceType, "EZVIZ")
                 .eq(Device::getDeleted, 0);
         List<Device> devices = deviceMapper.selectList(query);
+        if (currentUserService.hasAuthenticatedUser()) {
+            Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+            if (authorizedDeviceIds.isEmpty()) {
+                return new AlarmSyncResultDTO(0, 0, 0, "暂无可同步设备");
+            }
+            devices = devices.stream()
+                    .filter(device -> authorizedDeviceIds.contains(device.getId()))
+                    .collect(Collectors.toList());
+        }
 
         long end = System.currentTimeMillis();
         long start = end - AlarmConstant.SYNC_LOOKBACK_MINUTES * 60 * 1000;
@@ -139,7 +151,16 @@ public class AlarmServiceImpl implements AlarmService {
 
     @Override
     public List<AlarmMessageVO> listAlarms(AlarmQueryDTO dto) {
+        Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+        if (authorizedDeviceIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        if (dto.getDeviceId() != null) {
+            currentUserService.assertDeviceAccessible(dto.getDeviceId());
+        }
+
         LambdaQueryWrapper<AlarmMessage> query = new LambdaQueryWrapper<>();
+        query.in(AlarmMessage::getDeviceId, authorizedDeviceIds);
 
         if (dto.getDeviceId() != null) {
             query.eq(AlarmMessage::getDeviceId, dto.getDeviceId());
@@ -170,13 +191,38 @@ public class AlarmServiceImpl implements AlarmService {
         // 批量查 device name
         Map<Long, String> deviceNameMap = buildDeviceNameMap(alarms);
 
-        return alarms.stream().map(a -> toVO(a, deviceNameMap)).collect(Collectors.toList());
+        return alarms.stream()
+                .map(a -> toVO(a, deviceNameMap.get(a.getDeviceId()), false))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AlarmMessageVO getAlarmDetail(Long id) {
+        AlarmMessage alarm = alarmMessageMapper.selectById(id);
+        if (alarm == null) {
+            throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "告警不存在");
+        }
+        assertAlarmAccessible(alarm);
+
+        String deviceName = null;
+        if (alarm.getDeviceId() != null) {
+            Device device = deviceMapper.selectById(alarm.getDeviceId());
+            if (device != null) {
+                deviceName = device.getDeviceName();
+            }
+        }
+        return toVO(alarm, deviceName, true);
     }
 
     @Override
     public long countUnread() {
+        Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+        if (authorizedDeviceIds.isEmpty()) {
+            return 0L;
+        }
         LambdaQueryWrapper<AlarmMessage> query = new LambdaQueryWrapper<AlarmMessage>()
-                .eq(AlarmMessage::getReadStatus, AlarmConstant.READ_STATUS_UNREAD);
+                .eq(AlarmMessage::getReadStatus, AlarmConstant.READ_STATUS_UNREAD)
+                .in(AlarmMessage::getDeviceId, authorizedDeviceIds);
         Long count = alarmMessageMapper.selectCount(query);
         return count != null ? count : 0L;
     }
@@ -187,14 +233,23 @@ public class AlarmServiceImpl implements AlarmService {
         if (alarm == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "告警不存在");
         }
+        assertAlarmAccessible(alarm);
         alarm.setReadStatus(AlarmConstant.READ_STATUS_READ);
         alarmMessageMapper.updateById(alarm);
     }
 
     @Override
     public void markAllRead(Long deviceId) {
+        Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
+        if (authorizedDeviceIds.isEmpty()) {
+            return;
+        }
+        if (deviceId != null) {
+            currentUserService.assertDeviceAccessible(deviceId);
+        }
         LambdaUpdateWrapper<AlarmMessage> update = new LambdaUpdateWrapper<AlarmMessage>()
                 .eq(AlarmMessage::getReadStatus, AlarmConstant.READ_STATUS_UNREAD)
+                .in(AlarmMessage::getDeviceId, authorizedDeviceIds)
                 .set(AlarmMessage::getReadStatus, AlarmConstant.READ_STATUS_READ);
         if (deviceId != null) {
             update.eq(AlarmMessage::getDeviceId, deviceId);
@@ -208,6 +263,7 @@ public class AlarmServiceImpl implements AlarmService {
         if (alarm == null) {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "告警不存在");
         }
+        assertAlarmAccessible(alarm);
         alarmMessageMapper.deleteById(id);
     }
 
@@ -228,12 +284,12 @@ public class AlarmServiceImpl implements AlarmService {
         return map;
     }
 
-    private AlarmMessageVO toVO(AlarmMessage a, Map<Long, String> deviceNameMap) {
+    private AlarmMessageVO toVO(AlarmMessage a, String deviceName, boolean includeDetailFields) {
         AlarmMessageVO vo = new AlarmMessageVO();
         vo.setId(a.getId());
         vo.setDeviceId(a.getDeviceId());
         vo.setDeviceSerial(a.getDeviceSerial());
-        vo.setDeviceName(deviceNameMap.getOrDefault(a.getDeviceId(), null));
+        vo.setDeviceName(deviceName);
         vo.setChannelNo(a.getChannelNo());
         vo.setAlarmType(a.getAlarmType());
         vo.setAlarmName(a.getAlarmName());
@@ -243,7 +299,23 @@ public class AlarmServiceImpl implements AlarmService {
         vo.setReadStatus(a.getReadStatus());
         vo.setSource(a.getSource());
         vo.setCreatedAt(a.getCreatedAt());
+        if (includeDetailFields) {
+            vo.setAlarmId(a.getAlarmId());
+            vo.setRawJson(a.getRawJson());
+            vo.setUpdatedAt(a.getUpdatedAt());
+        }
         return vo;
+    }
+
+    private void assertAlarmAccessible(AlarmMessage alarm) {
+        if (alarm.getDeviceId() != null) {
+            currentUserService.assertDeviceAccessible(alarm.getDeviceId());
+            return;
+        }
+        Set<String> authorizedSerials = currentUserService.getAuthorizedDeviceSerials();
+        if (alarm.getDeviceSerial() == null || !authorizedSerials.contains(alarm.getDeviceSerial())) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "无权访问该告警");
+        }
     }
 
     private LocalDateTime parseAlarmTime(Map<String, Object> raw) {
