@@ -3,6 +3,9 @@ package com.yzh.yingshi.service;
 import com.yzh.yingshi.dto.PetAnalyzeRequest;
 import com.yzh.yingshi.entity.Pet;
 import com.yzh.yingshi.mapper.PetMapper;
+import com.yzh.yingshi.common.auth.CurrentUserService;
+import com.yzh.yingshi.common.api.BusinessCode;
+import com.yzh.yingshi.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ public class PetAiService {
 
     private final LlmClient llmClient;
     private final PetMapper petMapper;
+    private final CurrentUserService currentUserService;
 
     /** 调用失败时返回给前端的兜底文案 */
     private static final String FALLBACK_MESSAGE = "抱歉，AI 分析服务暂时不可用，请稍后再试。";
@@ -109,7 +113,12 @@ public class PetAiService {
      */
     private Pet resolvePet(PetAnalyzeRequest request) {
         if (request.getPetId() != null) {
-            return petMapper.selectById(request.getPetId());
+            Pet pet = petMapper.selectById(request.getPetId());
+            if (pet == null) {
+                throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "宠物不存在");
+            }
+            currentUserService.assertPetOwned(pet);
+            return pet;
         }
         return null;
     }

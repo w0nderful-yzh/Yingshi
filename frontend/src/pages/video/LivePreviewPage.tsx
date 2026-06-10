@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, Select, Space, Button, message, Descriptions, Alert } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
@@ -25,7 +25,7 @@ export default function LivePreviewPage() {
       .catch((err) => message.error(err.message));
   }, []);
 
-  const fetchLiveUrl = async () => {
+  const fetchLiveUrl = useCallback(async () => {
     if (!deviceId) {
       message.warning('请选择设备');
       return;
@@ -44,11 +44,11 @@ export default function LivePreviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId, protocol, quality]);
 
   useEffect(() => {
     if (deviceId) fetchLiveUrl();
-  }, [deviceId, protocol, quality]);
+  }, [deviceId, fetchLiveUrl]);
 
   const selectedDevice = devices.find((d) => d.id === deviceId);
 

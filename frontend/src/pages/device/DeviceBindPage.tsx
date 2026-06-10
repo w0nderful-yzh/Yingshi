@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Table, Tag, Space, Popconfirm, message, Empty, Spin } from 'antd';
 import { LinkOutlined, DisconnectOutlined, StopOutlined } from '@ant-design/icons';
@@ -9,20 +9,29 @@ import {
   unbindUserDevice,
   revokeEzvizOAuth,
 } from '@/api/ezvizOAuth';
+import { useAuthStore } from '@/store/authStore';
 import type { UserDeviceVO } from '@/types';
+import { canWriteRole } from '@/utils/permission';
 
 export default function DeviceBindPage() {
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.user?.role);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [bindingLoading, setBindingLoading] = useState(false);
   const [devices, setDevices] = useState<UserDeviceVO[]>([]);
+  const canWrite = canWriteRole(role);
 
-  useEffect(() => {
-    checkStatus();
+  const loadDevices = useCallback(async () => {
+    try {
+      const list = await getUserDevices();
+      setDevices(list);
+    } catch {
+      setDevices([]);
+    }
   }, []);
 
-  async function checkStatus() {
+  const checkStatus = useCallback(async () => {
     setLoading(true);
     try {
       const status = await getEzvizOAuthStatus();
@@ -35,16 +44,11 @@ export default function DeviceBindPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [loadDevices]);
 
-  async function loadDevices() {
-    try {
-      const list = await getUserDevices();
-      setDevices(list);
-    } catch {
-      setDevices([]);
-    }
-  }
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
 
   async function handleBind() {
     setBindingLoading(true);
@@ -99,9 +103,11 @@ export default function DeviceBindPage() {
       title: '操作',
       key: 'action',
       render: (_: any, record: UserDeviceVO) => (
-        <Popconfirm title="确认解绑该设备？" onConfirm={() => handleUnbind(record.id)}>
-          <Button type="link" danger size="small">解绑</Button>
-        </Popconfirm>
+        canWrite ? (
+          <Popconfirm title="确认解绑该设备？" onConfirm={() => handleUnbind(record.id)}>
+            <Button type="link" danger size="small">解绑</Button>
+          </Popconfirm>
+        ) : null
       ),
     },
   ];
@@ -118,18 +124,20 @@ export default function DeviceBindPage() {
     return (
       <Card>
         <Empty
-          description="尚未绑定萤石账号"
+          description={canWrite ? '尚未绑定萤石账号' : '当前角色无设备绑定权限'}
           style={{ padding: '60px 0' }}
         >
-          <Button
-            type="primary"
-            icon={<LinkOutlined />}
-            size="large"
-            loading={bindingLoading}
-            onClick={handleBind}
-          >
-            绑定萤石设备
-          </Button>
+          {canWrite && (
+            <Button
+              type="primary"
+              icon={<LinkOutlined />}
+              size="large"
+              loading={bindingLoading}
+              onClick={handleBind}
+            >
+              绑定萤石设备
+            </Button>
+          )}
         </Empty>
       </Card>
     );
@@ -139,16 +147,18 @@ export default function DeviceBindPage() {
     <Card
       title="我的萤石设备"
       extra={
-        <Space>
-          <Button icon={<LinkOutlined />} onClick={handleBind}>
-            重新授权
-          </Button>
-          <Popconfirm title="撤销授权将解绑所有设备，确认？" onConfirm={handleRevoke}>
-            <Button icon={<StopOutlined />} danger>
-              撤销授权
+        canWrite ? (
+          <Space>
+            <Button icon={<LinkOutlined />} onClick={handleBind}>
+              重新授权
             </Button>
-          </Popconfirm>
-        </Space>
+            <Popconfirm title="撤销授权将解绑所有设备，确认？" onConfirm={handleRevoke}>
+              <Button icon={<StopOutlined />} danger>
+                撤销授权
+              </Button>
+            </Popconfirm>
+          </Space>
+        ) : null
       }
     >
       <Table

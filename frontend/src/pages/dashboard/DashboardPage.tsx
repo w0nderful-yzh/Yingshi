@@ -15,14 +15,17 @@ import { getPets } from '@/api/pet';
 import { getDetectionConfigs } from '@/api/petDetection';
 import { getAlarms, syncAlarms } from '@/api/alarm';
 import { useAlarmStore } from '@/store/alarmStore';
+import { useAuthStore } from '@/store/authStore';
 import type { DeviceVO, PetVO, PetDetectionConfigVO, AlarmMessageVO } from '@/types';
-import { DeviceStatusMap, AlarmTypeMap } from '@/utils/constants';
+import { AlarmTypeMap } from '@/utils/constants';
 import { formatDate } from '@/utils/format';
+import { canWriteRole } from '@/utils/permission';
 import PageLoading from '@/components/PageLoading';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const unreadCount = useAlarmStore((s) => s.unreadCount);
+  const role = useAuthStore((s) => s.user?.role);
   const [devices, setDevices] = useState<DeviceVO[]>([]);
   const [pets, setPets] = useState<PetVO[]>([]);
   const [configs, setConfigs] = useState<PetDetectionConfigVO[]>([]);
@@ -77,6 +80,7 @@ export default function DashboardPage() {
 
   const onlineCount = devices.filter((d) => d.status === 'ONLINE').length;
   const activeConfigs = configs.filter((c) => c.enabled === 1).length;
+  const canWrite = canWriteRole(role);
 
   const alarmColumns: ColumnsType<AlarmMessageVO> = [
     { title: '设备', dataIndex: 'deviceName', key: 'deviceName', width: 120 },
@@ -110,14 +114,16 @@ export default function DashboardPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold m-0">总览</h2>
-        <Space>
-          <Button icon={<SyncOutlined />} onClick={handleSyncDevices} loading={syncing}>
-            同步设备
-          </Button>
-          <Button icon={<SyncOutlined />} onClick={handleSyncAlarms}>
-            同步告警
-          </Button>
-        </Space>
+        {canWrite && (
+          <Space>
+            <Button icon={<SyncOutlined />} onClick={handleSyncDevices} loading={syncing}>
+              同步设备
+            </Button>
+            <Button icon={<SyncOutlined />} onClick={handleSyncAlarms}>
+              同步告警
+            </Button>
+          </Space>
+        )}
       </div>
 
       <Row gutter={16} className="mb-6">

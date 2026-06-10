@@ -1,6 +1,7 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.config.EzvizProperties;
 import com.yzh.yingshi.dto.EzvizOAuthCallbackDTO;
 import com.yzh.yingshi.service.EzvizOAuthService;
@@ -35,15 +36,18 @@ public class EzvizOAuthController {
     private final EzvizOAuthService ezvizOAuthService;
     private final EzvizProperties ezvizProperties;
     private final HttpServletRequest request;
+    private final CurrentUserService currentUserService;
 
     @GetMapping("/auth-url")
     public ApiResponse<EzvizAuthUrlVO> getAuthUrl() {
+        currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
         return ApiResponse.success(ezvizOAuthService.generateAuthUrl(userId));
     }
 
     @PostMapping("/callback")
     public ApiResponse<List<UserDeviceVO>> handleCallback(@RequestBody EzvizOAuthCallbackDTO dto) {
+        currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
         return ApiResponse.success(ezvizOAuthService.handleCallback(userId, dto));
     }
@@ -94,6 +98,7 @@ public class EzvizOAuthController {
 
     @DeleteMapping("/devices/{id}")
     public ApiResponse<Void> unbindDevice(@PathVariable Long id) {
+        currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
         ezvizOAuthService.unbindDevice(userId, id);
         return ApiResponse.success(null);
@@ -110,6 +115,7 @@ public class EzvizOAuthController {
 
     @DeleteMapping("/revoke")
     public ApiResponse<Void> revokeOAuth() {
+        currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
         ezvizOAuthService.revokeOAuth(userId);
         return ApiResponse.success(null);

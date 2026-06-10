@@ -4,6 +4,7 @@ export interface AlarmMessageVO {
   deviceSerial: string;
   deviceName: string;
   channelNo: number;
+  alarmId?: string;
   alarmType: string;
   alarmName: string;
   alarmTime: string;
@@ -11,7 +12,9 @@ export interface AlarmMessageVO {
   alarmContent: string;
   readStatus: number;
   source: string;
+  rawJson?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AlarmUnreadCountVO {

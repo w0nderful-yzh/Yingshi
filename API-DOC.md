@@ -284,6 +284,36 @@
 }
 ```
 
+### 16.1 告警详情 `GET /api/alarms/{id}`
+
+响应 `data`: `AlarmMessageVO`
+
+说明:
+- 返回单条告警的完整明细
+- 相比列表接口补充 `alarmId`、`rawJson`、`updatedAt`
+
+示例:
+```json
+{
+  "id": 1,
+  "deviceId": 1,
+  "deviceSerial": "D12345678",
+  "deviceName": "客厅摄像头",
+  "channelNo": 1,
+  "alarmId": "alarm_xxx",
+  "alarmType": "pir",
+  "alarmName": "移动侦测",
+  "alarmTime": "2026-05-05T08:30:00",
+  "alarmPicUrl": "https://...",
+  "alarmContent": "检测到移动",
+  "readStatus": 0,
+  "source": "EZVIZ",
+  "rawJson": "{\"alarmId\":\"alarm_xxx\"}",
+  "createdAt": "2026-05-05T08:30:05",
+  "updatedAt": "2026-05-05T08:30:05"
+}
+```
+
 ### 17. 未读数量 `GET /api/alarms/unread-count`
 
 响应 `data`:

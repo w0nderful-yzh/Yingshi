@@ -234,21 +234,16 @@ body {
   width: 85%;
   height: 90%;
   border-radius: 9999px;
-  background: #fda4af;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.65), transparent 38%),
+    linear-gradient(160deg, rgba(255,255,255,0.88) 0%, rgba(248, 250, 252, 0.74) 48%, rgba(224, 231, 255, 0.86) 100%);
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0,0,0,0.08);
   border: 8px solid rgba(255,255,255,0.6);
   backdrop-filter: blur(8px);
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.hero-image-main img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
 .hero-image-main:hover { transform: scale(1.02); }
-.hero-image-main:hover img { transform: scale(1.05); }
 
 /* 胶囊次图 (右上角叠放) */
 .hero-image-secondary {
@@ -258,7 +253,9 @@ body {
   width: 45%;
   height: 50%;
   border-radius: 9999px;
-  background: #f472b6;
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,0.55), transparent 35%),
+    linear-gradient(180deg, rgba(244, 114, 182, 0.92) 0%, rgba(192, 132, 252, 0.88) 100%);
   overflow: hidden;
   box-shadow: 0 15px 30px rgba(0,0,0,0.1);
   border: 6px solid rgba(255,255,255,0.8);
@@ -266,14 +263,107 @@ body {
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
 }
-.hero-image-secondary img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
 .hero-image-secondary:hover { transform: scale(1.05); }
-.hero-image-secondary:hover img { transform: scale(1.08); }
+
+.hero-monitor-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 42px 34px 48px;
+  color: #1e293b;
+}
+.hero-monitor-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hero-monitor-card__eyebrow {
+  margin: 0 0 8px;
+  color: #7c3aed;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.hero-monitor-card__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.hero-monitor-card__badge {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d28d9;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.hero-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.hero-monitor-stat {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(167, 139, 250, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.hero-monitor-stat__icon {
+  width: 18px;
+  height: 18px;
+  color: #7c3aed;
+  margin-bottom: 12px;
+}
+.hero-monitor-stat span {
+  display: block;
+  color: #64748b;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+.hero-monitor-stat strong {
+  color: #0f172a;
+  font-size: 0.96rem;
+}
+.hero-monitor-card__footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-size: 0.92rem;
+}
+.hero-monitor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.16);
+}
+.hero-secondary-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 28px 20px;
+}
+.hero-secondary-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(6px);
+}
 
 /* ================================================================== */
 /*  "开始使用" 胶囊主按钮                                                */

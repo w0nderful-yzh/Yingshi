@@ -10,13 +10,17 @@ import {
   triggerDetection,
   triggerAnalysis,
 } from '@/api/petDetection';
+import { useAuthStore } from '@/store/authStore';
 import type { PetDetectionConfigVO, PetDetectionResultVO } from '@/types';
+import { canWriteRole } from '@/utils/permission';
 
 export default function DetectionConfigListPage() {
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.user?.role);
   const [configs, setConfigs] = useState<PetDetectionConfigVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [detectResult, setDetectResult] = useState<PetDetectionResultVO | null>(null);
+  const canWrite = canWriteRole(role);
 
   const fetchConfigs = async () => {
     setLoading(true);
@@ -86,7 +90,7 @@ export default function DetectionConfigListPage() {
       key: 'enabled',
       width: 80,
       render: (v: number, record) => (
-        <Switch checked={v === 1} size="small" onChange={() => handleToggleEnabled(record)} />
+        <Switch checked={v === 1} size="small" disabled={!canWrite} onChange={() => handleToggleEnabled(record)} />
       ),
     },
     { title: '冷却(秒)', dataIndex: 'cooldownSeconds', key: 'cooldownSeconds', width: 90 },
@@ -108,23 +112,33 @@ export default function DetectionConfigListPage() {
       width: 280,
       render: (_: unknown, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => navigate(`/detection/configs/${record.id}/edit`)}>
-            编辑
-          </Button>
-          <Button type="link" size="small" onClick={() => navigate(`/detection/configs/${record.id}/zones`)}>
-            区域配置
-          </Button>
-          <Button type="link" size="small" icon={<ScanOutlined />} onClick={() => handleDetect(record.id)}>
-            检测
-          </Button>
-          <Button type="link" size="small" icon={<ExperimentOutlined />} onClick={() => handleAnalyze(record.id)}>
-            分析
-          </Button>
-          <Popconfirm title="确认删除此配置？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger>
-              删除
+          {canWrite && (
+            <Button type="link" size="small" onClick={() => navigate(`/detection/configs/${record.id}/edit`)}>
+              编辑
             </Button>
-          </Popconfirm>
+          )}
+          {canWrite && (
+            <Button type="link" size="small" onClick={() => navigate(`/detection/configs/${record.id}/zones`)}>
+              区域配置
+            </Button>
+          )}
+          {canWrite && (
+            <Button type="link" size="small" icon={<ScanOutlined />} onClick={() => handleDetect(record.id)}>
+              检测
+            </Button>
+          )}
+          {canWrite && (
+            <Button type="link" size="small" icon={<ExperimentOutlined />} onClick={() => handleAnalyze(record.id)}>
+              分析
+            </Button>
+          )}
+          {canWrite && (
+            <Popconfirm title="确认删除此配置？" onConfirm={() => handleDelete(record.id)}>
+              <Button type="link" size="small" danger>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -134,9 +148,11 @@ export default function DetectionConfigListPage() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold m-0">检测配置</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/detection/configs/new')}>
-          新建配置
-        </Button>
+        {canWrite && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/detection/configs/new')}>
+            新建配置
+          </Button>
+        )}
       </div>
 
       <Table columns={columns} dataSource={configs} rowKey="id" loading={loading} scroll={{ x: 1200 }} />
