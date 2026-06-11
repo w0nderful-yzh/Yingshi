@@ -183,7 +183,8 @@ public class DeviceServiceImpl implements DeviceService {
             throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "设备不存在");
         }
         currentUserService.assertDeviceAccessible(device);
-        deviceMapper.deleteById(id);
+        device.setDeleted(1);
+        deviceMapper.updateById(device);
     }
 
     private DeviceVO toVO(Device device) {

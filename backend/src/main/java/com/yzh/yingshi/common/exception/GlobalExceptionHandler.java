@@ -3,11 +3,13 @@ package com.yzh.yingshi.common.exception;
 import com.yzh.yingshi.common.api.ApiResponse;
 import com.yzh.yingshi.common.api.BusinessCode;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -30,8 +32,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception exception) {
-        exception.printStackTrace();
-        return ApiResponse.fail(BusinessCode.INTERNAL_ERROR, exception.getMessage());
+        log.error("未捕获的异常", exception);
+        return ApiResponse.fail(BusinessCode.INTERNAL_ERROR, "服务器内部错误，请稍后重试");
     }
 }
 

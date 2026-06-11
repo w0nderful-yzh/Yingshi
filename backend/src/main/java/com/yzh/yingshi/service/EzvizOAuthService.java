@@ -17,6 +17,7 @@ import com.yzh.yingshi.vo.EzvizAuthUrlVO;
 import com.yzh.yingshi.vo.UserDeviceVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,10 +28,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -46,11 +50,22 @@ public class EzvizOAuthService {
     private final DeviceMapper deviceMapper;
     private final ObjectMapper objectMapper;
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final String STATE_SEPARATOR = "::";
+
     /**
      * 生成萤石 OAuth 授权页 URL
+     * state 格式: {nonce}::{userId}::{signature}
      */
     public EzvizAuthUrlVO generateAuthUrl(Long userId) {
-        String state = UUID.randomUUID().toString().replace("-", "") + ":" + userId;
+        String nonce = UUID.randomUUID().toString().replace("-", "");
+        String payload = nonce + STATE_SEPARATOR + userId;
+        String signature = signState(payload);
+        String state = payload + STATE_SEPARATOR + signature;
+
         String redirectUri = resolveRedirectUri();
         String authUrl = ezvizProperties.getBaseUrl() + "/oauth2/authorize"
                 + "?appKey=" + ezvizProperties.getAppKey()
@@ -58,7 +73,7 @@ public class EzvizOAuthService {
                 + "&redirectUri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
                 + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
 
-        log.info("生成萤石OAuth授权URL, userId={}, redirectUri={}, state={}", userId, redirectUri, state);
+        log.info("生成萤石OAuth授权URL, userId={}, redirectUri={}", userId, redirectUri);
         return new EzvizAuthUrlVO(authUrl, state);
     }
 
@@ -71,17 +86,69 @@ public class EzvizOAuthService {
     }
 
     /**
-     * 从 state 参数中解析 userId（格式: {uuid}:{userId}）
+     * 从 state 参数中解析 userId，同时验证 HMAC 签名
+     * 格式: {nonce}::{userId}::{signature}
      */
     public Long parseUserIdFromState(String state) {
-        if (state == null || !state.contains(":")) {
-            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "无效的state参数");
+        if (state == null || state.isBlank()) {
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "state参数不能为空");
         }
+
+        // 按 :: 分割，应该有 3 部分: nonce, userId, signature
+        String[] parts = state.split(STATE_SEPARATOR);
+        if (parts.length != 3) {
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "state格式无效");
+        }
+
+        String nonce = parts[0];
+        String userIdStr = parts[1];
+        String signature = parts[2];
+
+        // 重建 payload 并验证签名
+        String payload = nonce + STATE_SEPARATOR + userIdStr;
+        String expectedSignature = signState(payload);
+        if (!constantTimeEquals(expectedSignature, signature)) {
+            log.warn("OAuth state签名验证失败, 可能被篡改");
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "state签名验证失败");
+        }
+
         try {
-            return Long.parseLong(state.substring(state.lastIndexOf(":") + 1));
+            return Long.parseLong(userIdStr);
         } catch (NumberFormatException e) {
-            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "state中userId解析失败");
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "state中userId解析失败");
         }
+    }
+
+    /**
+     * 对 state payload 进行 HMAC-SHA256 签名
+     */
+    private String signState(String payload) {
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            SecretKeySpec keySpec = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
+            mac.init(keySpec);
+            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception e) {
+            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "state签名失败");
+        }
+    }
+
+    /**
+     * 常量时间比较，防止时序攻击
+     */
+    private boolean constantTimeEquals(String expected, String actual) {
+        if (expected == null || actual == null) {
+            return false;
+        }
+        if (expected.length() != actual.length()) {
+            return false;
+        }
+        int result = 0;
+        for (int i = 0; i < expected.length(); i++) {
+            result |= expected.charAt(i) ^ actual.charAt(i);
+        }
+        return result == 0;
     }
 
     /**

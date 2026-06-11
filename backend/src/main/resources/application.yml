@@ -38,10 +38,12 @@ springdoc:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:yzh-super-secure-secret-key-2026-very-long}
+  # 本地开发默认值，生产环境务必通过环境变量 JWT_SECRET 覆盖
+  secret: ${JWT_SECRET:dev-only-jwt-secret-change-in-production}
   expireSeconds: 7200
 
 ezviz:
+  # 本地开发默认值，生产环境务必通过环境变量覆盖
   app-key: ${EZVIZ_APP_KEY:e70fb747967f44deb4cabc17df64be5c}
   app-secret: ${EZVIZ_APP_SECRET:a7eb9aff632240cbf1e5610f15dc0ccc}
   base-url: https://open.ys7.com
