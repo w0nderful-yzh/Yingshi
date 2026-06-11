@@ -69,7 +69,7 @@ cd Yingshi
 
 # 2. 复制环境变量模板并填入 API Key（AI 功能需要，不填也能启动）
 cp .env.example .env
-vim .env   # 填入 LLM_API_KEY
+vim .env   # 填入 LLM_API_KEY、MIMO_API_KEY 和萤石配置
 
 # 3. 一键构建并启动
 docker compose up -d --build
@@ -83,6 +83,7 @@ docker compose up -d --build
 
 ```bash
 LLM_API_KEY=sk-xxx              # DeepSeek API Key，AI 功能必须
+MIMO_API_KEY=your_mimo_key      # 小米 MiMo Open Platform，多模态图片分析
 MYSQL_ROOT_PASSWORD=root123     # MySQL root 密码，默认 root123
 MYSQL_PASSWORD=123456           # MySQL 应用账号密码，默认 123456
 JWT_SECRET=your_secret_key      # JWT 签名密钥

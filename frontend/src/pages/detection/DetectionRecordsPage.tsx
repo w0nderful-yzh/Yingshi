@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, Table, Select, DatePicker, Button, Space, Tag, Modal, message } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { RobotOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 import { getDetectionRecords } from '@/api/petDetection';
 import { getDevices } from '@/api/device';
 import { getPets } from '@/api/pet';
@@ -10,10 +11,16 @@ import { getDetectionConfigs } from '@/api/petDetection';
 import type { PetDetectionRecordVO, DeviceVO, PetVO, PetDetectionConfigVO } from '@/types';
 import { formatDate } from '@/utils/format';
 import PetBoundingBox from '@/components/PetBoundingBox';
+import { generatePetAiReport } from '@/api/petAi';
+import { useAuthStore } from '@/store/authStore';
+import { canWriteRole } from '@/utils/permission';
 
 const { RangePicker } = DatePicker;
 
 export default function DetectionRecordsPage() {
+  const navigate = useNavigate();
+  const role = useAuthStore((state) => state.user?.role);
+  const canWrite = canWriteRole(role);
   const [records, setRecords] = useState<PetDetectionRecordVO[]>([]);
   const [loading, setLoading] = useState(false);
   const [devices, setDevices] = useState<DeviceVO[]>([]);
@@ -27,6 +34,7 @@ export default function DetectionRecordsPage() {
   });
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [detailRecord, setDetailRecord] = useState<PetDetectionRecordVO | null>(null);
+  const [generatingId, setGeneratingId] = useState<number>();
 
   useEffect(() => {
     Promise.all([
@@ -60,6 +68,22 @@ export default function DetectionRecordsPage() {
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
+
+  const handleGenerateReport = async (record: PetDetectionRecordVO) => {
+    setGeneratingId(record.id);
+    try {
+      const report = await generatePetAiReport({
+        sourceType: 'DETECTION',
+        sourceId: record.id,
+      });
+      message.success('AI分析报告已生成');
+      navigate(`/pet-ai?reportId=${report.id}`);
+    } catch (err: any) {
+      message.error(err.message);
+    } finally {
+      setGeneratingId(undefined);
+    }
+  };
 
   const columns: ColumnsType<PetDetectionRecordVO> = [
     { title: '宠物', dataIndex: 'petName', key: 'petName', width: 100 },
@@ -100,11 +124,24 @@ export default function DetectionRecordsPage() {
     {
       title: '操作',
       key: 'action',
-      width: 80,
+      width: 170,
       render: (_: unknown, record) => (
-        <Button type="link" size="small" onClick={() => setDetailRecord(record)}>
-          详情
-        </Button>
+        <Space size="small">
+          <Button type="link" size="small" onClick={() => setDetailRecord(record)}>
+            详情
+          </Button>
+          {canWrite && record.snapshotUrl && (
+            <Button
+              type="link"
+              size="small"
+              icon={<RobotOutlined />}
+              loading={generatingId === record.id}
+              onClick={() => handleGenerateReport(record)}
+            >
+              AI分析
+            </Button>
+          )}
+        </Space>
       ),
     },
   ];

@@ -1,6 +1,7 @@
 package com.yzh.yingshi.service;
 
 import com.yzh.yingshi.dto.PetAnalyzeRequest;
+import com.yzh.yingshi.dto.PetAiVisionResult;
 import com.yzh.yingshi.entity.Pet;
 import com.yzh.yingshi.mapper.PetMapper;
 import com.yzh.yingshi.common.auth.CurrentUserService;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class PetAiService {
 
     private final LlmClient llmClient;
+    private final MimoMultimodalClient multimodalClient;
     private final PetMapper petMapper;
     private final CurrentUserService currentUserService;
 
@@ -62,12 +64,20 @@ public class PetAiService {
             userContent.append("\n用户额外问题：").append(request.getUserQuestion()).append("\n");
         }
 
-        userContent.append("\n请从以下角度分析：\n");
-        userContent.append("1. 宠物当前可能在做什么\n");
-        userContent.append("2. 行为是否正常\n");
-        userContent.append("3. 如果有异常，给出可能的原因和建议\n");
+        userContent.append("\n请只返回JSON，字段为 riskLevel、summary、observedBehavior、")
+                .append("evidenceBasis、recommendations、uncertainties。");
 
-        return callLlm(SYSTEM_PROMPT, userContent.toString(), "宠物行为分析");
+        try {
+            PetAiVisionResult result = multimodalClient.analyze(
+                    java.util.List.of(request.getImageUrl()),
+                    SYSTEM_PROMPT + " 不要进行医疗诊断，只描述画面中可观察到的事实。",
+                    userContent.toString()
+            );
+            return formatVisionResult(result);
+        } catch (Exception e) {
+            log.error("[宠物行为分析] MiMo多模态调用失败: {}", e.getMessage());
+            return FALLBACK_MESSAGE;
+        }
     }
 
     /**
@@ -121,5 +131,22 @@ public class PetAiService {
             return pet;
         }
         return null;
+    }
+
+    private String formatVisionResult(PetAiVisionResult result) {
+        StringBuilder text = new StringBuilder();
+        text.append("风险等级：").append(result.getRiskLevel()).append("\n\n");
+        text.append("事件摘要：").append(result.getSummary()).append("\n\n");
+        text.append("画面观察：").append(result.getObservedBehavior()).append("\n\n");
+        text.append("判断依据：").append(result.getEvidenceBasis()).append("\n\n");
+        if (result.getRecommendations() != null && !result.getRecommendations().isEmpty()) {
+            text.append("建议：\n");
+            result.getRecommendations().forEach(item -> text.append("- ").append(item).append('\n'));
+        }
+        if (result.getUncertainties() != null && !result.getUncertainties().isEmpty()) {
+            text.append("\n不确定性：\n");
+            result.getUncertainties().forEach(item -> text.append("- ").append(item).append('\n'));
+        }
+        return text.toString().trim();
     }
 }

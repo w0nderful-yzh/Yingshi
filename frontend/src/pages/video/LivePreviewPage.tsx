@@ -21,7 +21,13 @@ export default function LivePreviewPage() {
 
   useEffect(() => {
     getDevices({ status: 'ONLINE' })
-      .then(setDevices)
+      .then((list) => {
+        setDevices(list);
+        // 如果没有从 URL 参数指定设备，默认选择第一个
+        if (!initialDeviceId && list.length > 0 && !deviceId) {
+          setDeviceId(list[0].id);
+        }
+      })
       .catch((err) => message.error(err.message));
   }, []);
 

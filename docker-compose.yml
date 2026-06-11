@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8
     container_name: yingshi-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --character-set-client-handshake=FALSE
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: yingshi
@@ -31,6 +32,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       LLM_API_KEY: ${LLM_API_KEY}
+      MIMO_API_KEY: ${MIMO_API_KEY}
+      MIMO_MODEL: ${MIMO_MODEL:-mimo-v2.5}
       EZVIZ_APP_KEY: ${EZVIZ_APP_KEY}
       EZVIZ_APP_SECRET: ${EZVIZ_APP_SECRET}
       EZVIZ_REDIRECT_URI: ${EZVIZ_REDIRECT_URI:-http://localhost/api/ezviz/oauth/callback}

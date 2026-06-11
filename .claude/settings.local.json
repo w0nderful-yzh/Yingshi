@@ -27,7 +27,11 @@
       "Bash(mysql -h 127.0.0.1 -u yzh666 -p123456 yingshi -e \"SELECT 1\")",
       "Bash(docker exec yingshi-mysql *)",
       "Bash(git ls-files *)",
-      "Bash(mvn test *)"
+      "Bash(mvn test *)",
+      "Bash(docker-compose --version)",
+      "Bash(docker-compose ps *)",
+      "Bash(docker builder prune *)",
+      "Bash(mysql -u yzh666 -p123456 yingshi -e \"SELECT id, username, HEX\\(nickname\\), nickname FROM sys_user LIMIT 5;\")"
     ]
   }
 }

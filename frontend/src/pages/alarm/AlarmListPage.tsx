@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Table, Button, Select, Input, Space, Tag, Popconfirm, Modal, Image, message, Tabs } from 'antd';
 import { SyncOutlined, CheckOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { RobotOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useNavigate } from 'react-router-dom';
 import {
   getAlarms,
   getAlarmDetail,
@@ -17,7 +19,9 @@ import {
   getStillnessAlarms,
 } from '@/api/petDetection';
 import { getDevices } from '@/api/device';
-import type { AlarmMessageVO, DeviceVO } from '@/types';
+import { getPets } from '@/api/pet';
+import { generatePetAiReport } from '@/api/petAi';
+import type { AlarmMessageVO, DeviceVO, PetVO } from '@/types';
 import { AlarmTypeMap, AlarmSource } from '@/utils/constants';
 import { formatDate } from '@/utils/format';
 import { useAlarmStore } from '@/store/alarmStore';
@@ -25,20 +29,28 @@ import { useAuthStore } from '@/store/authStore';
 import { canWriteRole } from '@/utils/permission';
 
 export default function AlarmListPage() {
+  const navigate = useNavigate();
   const role = useAuthStore((s) => s.user?.role);
   const [alarms, setAlarms] = useState<AlarmMessageVO[]>([]);
   const [loading, setLoading] = useState(true);
   const [devices, setDevices] = useState<DeviceVO[]>([]);
+  const [pets, setPets] = useState<PetVO[]>([]);
   const [filters, setFilters] = useState({ deviceId: undefined as number | undefined, readStatus: undefined as number | undefined, keyword: '' });
   const [activeTab, setActiveTab] = useState('all');
   const [detailAlarm, setDetailAlarm] = useState<AlarmMessageVO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [reportAlarm, setReportAlarm] = useState<AlarmMessageVO | null>(null);
+  const [reportPetId, setReportPetId] = useState<number>();
+  const [reportGenerating, setReportGenerating] = useState(false);
   const { decrementCount, resetCount, fetchUnreadCount } = useAlarmStore();
   const canWrite = canWriteRole(role);
 
   useEffect(() => {
-    getDevices().then(setDevices).catch(() => {});
+    Promise.all([getDevices().catch(() => []), getPets().catch(() => [])]).then(([deviceData, petData]) => {
+      setDevices(deviceData);
+      setPets(petData);
+    });
   }, []);
 
   const fetchAlarms = useCallback(async () => {
@@ -149,6 +161,29 @@ export default function AlarmListPage() {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!reportAlarm || !reportPetId) {
+      message.warning('请选择本次告警对应的宠物');
+      return;
+    }
+    setReportGenerating(true);
+    try {
+      const report = await generatePetAiReport({
+        sourceType: 'ALARM',
+        sourceId: reportAlarm.id,
+        petId: reportPetId,
+      });
+      setReportAlarm(null);
+      setReportPetId(undefined);
+      message.success('AI分析报告已生成');
+      navigate(`/pet-ai?reportId=${report.id}`);
+    } catch (err: any) {
+      message.error(err.message);
+    } finally {
+      setReportGenerating(false);
+    }
+  };
+
   const columns: ColumnsType<AlarmMessageVO> = [
     {
       title: '设备',
@@ -194,12 +229,17 @@ export default function AlarmListPage() {
     {
       title: '操作',
       key: 'action',
-      width: 160,
+      width: 220,
       render: (_: unknown, record) => (
         <Space size="small">
           <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
             查看
           </Button>
+          {canWrite && record.alarmPicUrl && (
+            <Button type="link" size="small" icon={<RobotOutlined />} onClick={() => setReportAlarm(record)}>
+              AI分析
+            </Button>
+          )}
           {canWrite && record.readStatus === 0 && (
             <Button type="link" size="small" icon={<CheckOutlined />} onClick={() => handleMarkRead(record.id)}>
               已读
@@ -315,6 +355,29 @@ export default function AlarmListPage() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title="生成告警分析报告"
+        open={!!reportAlarm}
+        onCancel={() => {
+          setReportAlarm(null);
+          setReportPetId(undefined);
+        }}
+        onOk={handleGenerateReport}
+        okText="调用 MiMo 2.5 分析"
+        confirmLoading={reportGenerating}
+      >
+        <p className="text-sm text-slate-500 mb-3">
+          请选择画面中的宠物。系统会同时使用告警图片、告警类型、发生时间和宠物档案。
+        </p>
+        <Select
+          value={reportPetId}
+          onChange={setReportPetId}
+          placeholder="选择本次告警对应的宠物"
+          style={{ width: '100%' }}
+          options={pets.map((pet) => ({ value: pet.id, label: pet.petName }))}
+        />
       </Modal>
     </div>
   );

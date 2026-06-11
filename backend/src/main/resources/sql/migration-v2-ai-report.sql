@@ -1,0 +1,30 @@
+USE yingshi;
+
+CREATE TABLE IF NOT EXISTS pet_ai_report (
+    id                      BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id                 BIGINT NOT NULL COMMENT '所属用户ID',
+    pet_id                  BIGINT NOT NULL COMMENT '宠物ID',
+    pet_name                VARCHAR(50) NOT NULL COMMENT '生成报告时的宠物名称快照',
+    source_type             VARCHAR(20) NOT NULL COMMENT '来源: ALARM/DETECTION/IMAGE',
+    source_id               BIGINT COMMENT '告警或检测记录ID',
+    source_time             DATETIME COMMENT '事件发生时间',
+    image_url               VARCHAR(2000) NOT NULL COMMENT '分析图片地址',
+    report_type             VARCHAR(20) DEFAULT 'EVENT' COMMENT '报告类型',
+    risk_level              VARCHAR(20) NOT NULL COMMENT '风险等级: LOW/MEDIUM/HIGH',
+    title                   VARCHAR(200) NOT NULL COMMENT '报告标题',
+    summary                 TEXT COMMENT '事件摘要',
+    observed_behavior       TEXT COMMENT '画面行为观察',
+    evidence_basis          TEXT COMMENT '分析依据',
+    recommendations_json    TEXT COMMENT '建议JSON数组',
+    uncertainties_json      TEXT COMMENT '不确定性JSON数组',
+    evidence_json           LONGTEXT COMMENT '系统证据包JSON',
+    analysis_json           LONGTEXT COMMENT '模型原始结构化结果',
+    model_name              VARCHAR(100) COMMENT '模型名称',
+    prompt_version          VARCHAR(50) COMMENT '提示词版本',
+    created_at              DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at              DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_ai_report_user (user_id),
+    INDEX idx_ai_report_pet (pet_id),
+    INDEX idx_ai_report_source (source_type, source_id),
+    INDEX idx_ai_report_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宠物AI事件分析报告';

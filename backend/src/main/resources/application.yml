@@ -17,6 +17,17 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+app:
+  ai:
+    mimo:
+      api-key: ${MIMO_API_KEY:}
+      base-url: ${MIMO_BASE_URL:https://token-plan-cn.xiaomimimo.com}
+      model: ${MIMO_MODEL:mimo-v2.5}
+      max-completion-tokens: ${MIMO_MAX_COMPLETION_TOKENS:1600}
+  auth:
+    # 开发阶段允许未绑定萤石账号时直接访问现有设备，便于本地摄像头调试
+    allow-unbound-device-access: true
+
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
@@ -25,11 +36,6 @@ mybatis-plus:
 
 server:
   port: 8080
-
-app:
-  auth:
-    # 开发阶段允许未绑定萤石账号时直接访问现有设备，便于本地摄像头调试
-    allow-unbound-device-access: true
 
 springdoc:
   api-docs:
