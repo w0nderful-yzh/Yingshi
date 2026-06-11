@@ -129,20 +129,22 @@ export default function LivePreviewPage() {
 
       <div className="flex flex-col gap-4 xl:flex-row">
         <div className="min-w-0 flex-1">
-          <Card>
-            {liveData?.url ? (
-              <VideoPlayer
-                url={liveData.url}
-                accessToken={liveData.accessToken}
-                autoPlay
-                controls
-                onError={setPlayerError}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-80 bg-gray-100 text-gray-400">
-                {loading ? '加载中...' : '请选择设备查看实时视频'}
-              </div>
-            )}
+          <Card className="overflow-hidden">
+            <div className="min-w-0 max-w-full overflow-hidden">
+              {liveData?.url ? (
+                <VideoPlayer
+                  url={liveData.url}
+                  accessToken={liveData.accessToken}
+                  autoPlay
+                  controls
+                  onError={setPlayerError}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-80 bg-gray-100 text-gray-400">
+                  {loading ? '加载中...' : '请选择设备查看实时视频'}
+                </div>
+              )}
+            </div>
           </Card>
         </div>
 

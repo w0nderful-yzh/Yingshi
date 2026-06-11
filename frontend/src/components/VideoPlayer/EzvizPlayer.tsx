@@ -20,6 +20,15 @@ interface EzvizPlayerError {
   };
 }
 
+interface FullscreenChangeEvent {
+  data?: {
+    isCurrentFullscreen?: boolean;
+    isCurrentBrowserFullscreen?: boolean;
+  };
+  isCurrentFullscreen?: boolean;
+  isCurrentBrowserFullscreen?: boolean;
+}
+
 function getPlayerErrorMessage(error: unknown) {
   const playerError = error as EzvizPlayerError;
   if (playerError?.data?.nErrorCode === 5) {
@@ -94,18 +103,76 @@ export default function EzvizPlayer({
     player.eventEmitter.on(EZUIKitPlayer.EVENTS.firstFrameDisplay, handleFirstFrame);
     player.eventEmitter.on(EZUIKitPlayer.EVENTS.videoInfo, handleVideoInfo);
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      if (!entry || !playerRef.current) return;
-      const nextWidth = Math.max(1, Math.round(entry.contentRect.width));
-      const nextHeight = Math.max(1, Math.round(entry.contentRect.height));
-      playerRef.current.resize(nextWidth, nextHeight);
-    });
+    let restoreFrame = 0;
+    let restoreTimer = 0;
+
+    const resizeToContainer = () => {
+      if (!playerRef.current || !container.isConnected) return;
+      const rect = container.getBoundingClientRect();
+      playerRef.current.resize(
+        Math.max(1, Math.round(rect.width)),
+        Math.max(1, Math.round(rect.height)),
+      );
+    };
+
+    const restoreEmbeddedLayout = () => {
+      if (document.fullscreenElement) return;
+
+      const playerElement = container.matches('.ezplayer')
+        ? container
+        : container.querySelector('.ezplayer');
+      playerElement?.classList.remove(
+        'ezplayer-fullscreen',
+        'ezplayer-global-fullscreen',
+      );
+      document.body.classList.remove('ezplayer-body-mobile-noscroll');
+
+      window.cancelAnimationFrame(restoreFrame);
+      window.clearTimeout(restoreTimer);
+      restoreFrame = window.requestAnimationFrame(() => {
+        restoreFrame = window.requestAnimationFrame(resizeToContainer);
+      });
+      restoreTimer = window.setTimeout(resizeToContainer, 120);
+    };
+
+    const handleFullscreenChange = (event?: FullscreenChangeEvent) => {
+      const fullscreenState = event?.data ?? event;
+      const reportsFullscreen = fullscreenState?.isCurrentFullscreen === true
+        || fullscreenState?.isCurrentBrowserFullscreen === true;
+      const reportsExit = (
+        fullscreenState?.isCurrentFullscreen !== undefined
+        || fullscreenState?.isCurrentBrowserFullscreen !== undefined
+      ) && !reportsFullscreen;
+
+      if (reportsExit || (!reportsFullscreen && !document.fullscreenElement)) {
+        restoreEmbeddedLayout();
+      }
+    };
+    const handleNativeFullscreenChange = () => handleFullscreenChange();
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        window.setTimeout(restoreEmbeddedLayout, 80);
+      }
+    };
+
+    player.eventEmitter.on(EZUIKitPlayer.EVENTS.exitFullscreen, restoreEmbeddedLayout);
+    player.eventEmitter.on(EZUIKitPlayer.EVENTS.fullscreenChange, handleFullscreenChange);
+    document.addEventListener('fullscreenchange', handleNativeFullscreenChange);
+    document.addEventListener('keydown', handleEscape);
+
+    const resizeObserver = new ResizeObserver(resizeToContainer);
     resizeObserver.observe(container);
 
     return () => {
       resizeObserver.disconnect();
+      window.cancelAnimationFrame(restoreFrame);
+      window.clearTimeout(restoreTimer);
+      document.removeEventListener('fullscreenchange', handleNativeFullscreenChange);
+      document.removeEventListener('keydown', handleEscape);
       player.eventEmitter.off(EZUIKitPlayer.EVENTS.firstFrameDisplay, handleFirstFrame);
       player.eventEmitter.off(EZUIKitPlayer.EVENTS.videoInfo, handleVideoInfo);
+      player.eventEmitter.off(EZUIKitPlayer.EVENTS.exitFullscreen, restoreEmbeddedLayout);
+      player.eventEmitter.off(EZUIKitPlayer.EVENTS.fullscreenChange, handleFullscreenChange);
       playerRef.current = null;
       try {
         const result = player.destroy();
@@ -128,6 +195,9 @@ export default function EzvizPlayer({
         height: fill ? '100%' : undefined,
         aspectRatio: fill ? undefined : '16 / 9',
         background: '#020617',
+        display: 'block',
+        maxWidth: '100%',
+        minWidth: 0,
         overflow: 'hidden',
       }}
     />
