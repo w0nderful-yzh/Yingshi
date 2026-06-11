@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Alert, Card, Button, Space, message, Descriptions, Tag } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { getDetectionConfigById, getSafeZones, createSafeZone, updateSafeZone, deleteSafeZone } from '@/api/petDetection';
+import { getDetectionConfigById, getSafeZones, createSafeZone, deleteSafeZone } from '@/api/petDetection';
 import { getLiveUrl } from '@/api/video';
 import type { PetDetectionConfigVO, PetSafeZoneVO } from '@/types';
 import VideoPlayer from '@/components/VideoPlayer/VideoPlayer';
@@ -99,10 +99,14 @@ export default function SafeZoneEditorPage() {
 
   const handleSave = async () => {
     if (!id) return;
+
     setSaving(true);
+    const zonesToSave = [...newZones];
+    const savedZones: PetSafeZoneVO[] = [];
+
     try {
-      for (const zone of newZones) {
-        await createSafeZone({
+      for (const zone of zonesToSave) {
+        const savedZone = await createSafeZone({
           detectionConfigId: Number(id),
           zoneName: zone.zoneName,
           zoneType: zone.zoneType,
@@ -112,11 +116,19 @@ export default function SafeZoneEditorPage() {
           rectBottom: zone.rectBottom,
           polygonPoints: zone.polygonPoints,
         });
+        savedZones.push(savedZone);
       }
-      message.success('保存成功');
+
+      setExistingZones((prev) => [...prev, ...savedZones]);
       setNewZones([]);
-      fetchData();
+      setSelectedZoneIdx(undefined);
+      message.success('保存成功');
     } catch (err: any) {
+      if (savedZones.length > 0) {
+        setExistingZones((prev) => [...prev, ...savedZones]);
+        setNewZones(zonesToSave.slice(savedZones.length));
+        setSelectedZoneIdx(undefined);
+      }
       message.error(err.message);
     } finally {
       setSaving(false);

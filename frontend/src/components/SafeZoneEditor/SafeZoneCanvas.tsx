@@ -43,6 +43,7 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 450 });
+  const [isDrawing, setIsDrawing] = useState(false);
 
   // Drawing state
   const drawingRef = useRef<{
@@ -178,6 +179,26 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
     render();
   }, [render]);
 
+  const cancelDrawing = useCallback(() => {
+    const dr = drawingRef.current;
+    dr.active = false;
+    dr.polygonPoints = [];
+    setIsDrawing(false);
+    render();
+  }, [render]);
+
+  useEffect(() => {
+    const handleWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && drawingRef.current.active) {
+        e.preventDefault();
+        cancelDrawing();
+      }
+    };
+
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [cancelDrawing]);
+
   const getMousePos = (e: React.MouseEvent): { x: number; y: number } => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
@@ -188,11 +209,13 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    canvasRef.current?.focus({ preventScroll: true });
     const pos = getMousePos(e);
     const dr = drawingRef.current;
 
     if (drawingMode === 'RECTANGLE') {
       dr.active = true;
+      setIsDrawing(true);
       dr.startX = pos.x;
       dr.startY = pos.y;
       dr.currentX = pos.x;
@@ -201,6 +224,7 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
       // POLYGON
       if (!dr.active) {
         dr.active = true;
+        setIsDrawing(true);
         dr.polygonPoints = [pos];
       } else {
         dr.polygonPoints.push(pos);
@@ -212,6 +236,8 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (!drawingRef.current.active) return;
+
     const pos = getMousePos(e);
     const dr = drawingRef.current;
     dr.currentX = pos.x;
@@ -223,6 +249,7 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
     const dr = drawingRef.current;
     if (drawingMode === 'RECTANGLE' && dr.active) {
       dr.active = false;
+      setIsDrawing(false);
       const { width, height } = canvasSize;
       const tl = pixelToPercent(Math.min(dr.startX, dr.currentX), Math.min(dr.startY, dr.currentY), width, height);
       const br = pixelToPercent(Math.max(dr.startX, dr.currentX), Math.max(dr.startY, dr.currentY), width, height);
@@ -245,6 +272,7 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
     const dr = drawingRef.current;
     if (drawingMode === 'POLYGON' && dr.active && dr.polygonPoints.length >= 3) {
       dr.active = false;
+      setIsDrawing(false);
       const { width, height } = canvasSize;
       const points = dr.polygonPoints.map((p) => pixelToPercent(p.x, p.y, width, height));
       onZoneComplete({
@@ -259,10 +287,8 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      const dr = drawingRef.current;
-      dr.active = false;
-      dr.polygonPoints = [];
-      render();
+      e.preventDefault();
+      cancelDrawing();
     }
   };
 
@@ -297,6 +323,7 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
         onDoubleClick={handleDoubleClick}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
+        data-drawing-active={isDrawing ? 'true' : 'false'}
         tabIndex={0}
       />
     </div>
