@@ -46,6 +46,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
     private final CurrentUserService currentUserService;
     private final EzvizSnapshotService ezvizSnapshotService;
     private final EzvizPetAiDetector ezvizPetAiDetector;
+    private final PetSafeZoneEvaluator safeZoneEvaluator;
     private final PetDetectionProperties detectionProperties;
     private final ObjectMapper objectMapper;
 
@@ -517,25 +518,36 @@ public class PetDetectionServiceImpl implements PetDetectionService {
             return result;
         }
 
-        // 3. 取第一个检测结果 (MVP阶段处理单只宠物)
-        PetAiDetector.PetDetection detection = detections.get(0);
+        // 3. MVP阶段处理单只宠物，取置信度最高的检测框
+        PetAiDetector.PetDetection detection = detections.stream()
+                .max(Comparator.comparingDouble(PetAiDetector.PetDetection::getConfidence))
+                .orElse(detections.get(0));
 
         // 4. 判断是否在安全区域内
         boolean inSafeZone = true;
         if (!zones.isEmpty()) {
-            inSafeZone = isInsideAnyZone(detection, zones);
+            inSafeZone = safeZoneEvaluator.isInsideAnyZone(detection, zones);
         }
 
         boolean alarmTriggered = false;
+        String resultMessage = "宠物在安全区域内";
 
-        // 5. 如果在区域外, 检查冷却时间后触发告警
+        // 5. 连续两次检测均在区域外才确认离区，同一次离区过程只报警一次
         if (!inSafeZone) {
-            if (!isInCooldown(config.getId(), now, config.getCooldownSeconds())) {
+            boolean outsideConfirmed = wasLastLocatedDetectionOutside(config.getId(), now);
+            boolean alreadyAlarmed = hasAlarmInCurrentOutsideEpisode(config.getId());
+            if (!outsideConfirmed) {
+                resultMessage = "宠物疑似离开安全区域, 等待下一次检测确认";
+            } else if (alreadyAlarmed) {
+                resultMessage = "宠物仍在安全区域外, 本次离区已报警";
+            } else if (!isInCooldown(config.getId(), now, config.getCooldownSeconds())) {
                 alarmTriggered = true;
                 createAlarm(config, device, detection, snapshotUrl, now);
+                resultMessage = "宠物确认离开安全区域, 已触发告警";
                 log.info("宠物越界告警已触发! configId={}, petName={}, deviceSerial={}",
                         config.getId(), pet.getPetName(), device.getDeviceSerial());
             } else {
+                resultMessage = "宠物确认离开安全区域, 告警冷却中";
                 log.debug("告警冷却中, 跳过告警 configId={}", config.getId());
             }
         }
@@ -545,84 +557,40 @@ public class PetDetectionServiceImpl implements PetDetectionService {
 
         result.setInSafeZone(inSafeZone);
         result.setAlarmTriggered(alarmTriggered);
-        result.setMessage(inSafeZone ? "宠物在安全区域内" : (alarmTriggered ? "宠物越界, 已触发告警" : "宠物越界, 告警冷却中"));
+        result.setMessage(resultMessage);
 
         return result;
     }
 
-    /**
-     * 判断宠物是否在任意一个安全区域内
-     */
-    private boolean isInsideAnyZone(PetAiDetector.PetDetection detection, List<PetSafeZone> zones) {
-        for (PetSafeZone zone : zones) {
-            if (isInsideZone(detection, zone)) {
-                return true;
-            }
-        }
-        // 如果有安全区域但都不在里面, 返回false
-        return false;
+    private boolean wasLastLocatedDetectionOutside(Long configId, LocalDateTime now) {
+        long confirmationWindowSeconds = Math.max(60L, detectionProperties.getIntervalMs() * 3 / 1000);
+        LambdaQueryWrapper<PetDetectionRecord> query = new LambdaQueryWrapper<PetDetectionRecord>()
+                .eq(PetDetectionRecord::getDetectionConfigId, configId)
+                .isNotNull(PetDetectionRecord::getPetCoordX)
+                .ge(PetDetectionRecord::getDetectTime, now.minusSeconds(confirmationWindowSeconds))
+                .orderByDesc(PetDetectionRecord::getDetectTime)
+                .last("LIMIT 1");
+        PetDetectionRecord latest = recordMapper.selectOne(query);
+        return latest != null && PetDetectionConstant.IN_ZONE_NO.equals(latest.getInSafeZone());
     }
 
-    /**
-     * 判断宠物是否在指定安全区域内
-     * 使用边界框中心点判断
-     */
-    private boolean isInsideZone(PetAiDetector.PetDetection detection, PetSafeZone zone) {
-        // 宠物边界框中心点
-        double centerX = detection.getX() + detection.getWidth() / 2.0;
-        double centerY = detection.getY() + detection.getHeight() / 2.0;
+    private boolean hasAlarmInCurrentOutsideEpisode(Long configId) {
+        LambdaQueryWrapper<PetDetectionRecord> insideQuery = new LambdaQueryWrapper<PetDetectionRecord>()
+                .eq(PetDetectionRecord::getDetectionConfigId, configId)
+                .eq(PetDetectionRecord::getInSafeZone, PetDetectionConstant.IN_ZONE_YES)
+                .isNotNull(PetDetectionRecord::getPetCoordX)
+                .orderByDesc(PetDetectionRecord::getDetectTime)
+                .last("LIMIT 1");
+        PetDetectionRecord lastInside = recordMapper.selectOne(insideQuery);
 
-        if (PetDetectionConstant.ZONE_TYPE_RECTANGLE.equals(zone.getZoneType())) {
-            return isPointInRectangle(centerX, centerY, zone);
-        } else if (PetDetectionConstant.ZONE_TYPE_POLYGON.equals(zone.getZoneType())) {
-            return isPointInPolygon(centerX, centerY, zone);
+        LambdaQueryWrapper<PetDetectionRecord> alarmQuery = new LambdaQueryWrapper<PetDetectionRecord>()
+                .eq(PetDetectionRecord::getDetectionConfigId, configId)
+                .eq(PetDetectionRecord::getAlarmTriggered, PetDetectionConstant.ALARM_TRIGGERED);
+        if (lastInside != null) {
+            alarmQuery.gt(PetDetectionRecord::getDetectTime, lastInside.getDetectTime());
         }
-        return false;
-    }
-
-    private boolean isPointInRectangle(double x, double y, PetSafeZone zone) {
-        if (zone.getRectLeft() == null || zone.getRectTop() == null ||
-                zone.getRectRight() == null || zone.getRectBottom() == null) {
-            return true; // 区域配置不完整, 默认安全
-        }
-        return x >= zone.getRectLeft() && x <= zone.getRectRight()
-                && y >= zone.getRectTop() && y <= zone.getRectBottom();
-    }
-
-    private boolean isPointInPolygon(double x, double y, PetSafeZone zone) {
-        if (zone.getPolygonPoints() == null || zone.getPolygonPoints().isBlank()) {
-            return true;
-        }
-
-        try {
-            List<Map<String, Double>> points = objectMapper.readValue(
-                    zone.getPolygonPoints(), new TypeReference<>() {});
-            return isPointInPolygonList(x, y, points);
-        } catch (Exception e) {
-            log.warn("解析多边形坐标失败: {}", e.getMessage());
-            return true;
-        }
-    }
-
-    /**
-     * 射线法判断点是否在多边形内
-     */
-    private boolean isPointInPolygonList(double x, double y, List<Map<String, Double>> points) {
-        int n = points.size();
-        if (n < 3) return true;
-
-        boolean inside = false;
-        for (int i = 0, j = n - 1; i < n; j = i++) {
-            double xi = points.get(i).get("x");
-            double yi = points.get(i).get("y");
-            double xj = points.get(j).get("x");
-            double yj = points.get(j).get("y");
-
-            if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
-                inside = !inside;
-            }
-        }
-        return inside;
+        Long count = recordMapper.selectCount(alarmQuery);
+        return count != null && count > 0;
     }
 
     /**
@@ -652,9 +620,9 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         alarm.setAlarmName("宠物越界告警");
         alarm.setAlarmTime(now);
         alarm.setAlarmPicUrl(snapshotUrl);
-        alarm.setAlarmContent(String.format("宠物离开安全区域! 检测位置: (%.1f%%, %.1f%%)",
+        alarm.setAlarmContent(String.format("宠物连续两次离开安全区域! 落地点: (%.1f%%, %.1f%%)",
                 detection.getX() + detection.getWidth() / 2,
-                detection.getY() + detection.getHeight() / 2));
+                detection.getY() + detection.getHeight()));
         alarm.setReadStatus(AlarmConstant.READ_STATUS_UNREAD);
         alarm.setSource(PetDetectionConstant.SOURCE_PET_DETECT);
         alarm.setDeleted(AlarmConstant.DELETED_NO);
@@ -715,12 +683,29 @@ public class PetDetectionServiceImpl implements PetDetectionService {
             if (req.getRectLeft() >= req.getRectRight() || req.getRectTop() >= req.getRectBottom()) {
                 throw new BusinessException(BusinessCode.PARAM_INVALID, "矩形区域坐标不合法");
             }
+            validateCoordinate(req.getRectLeft());
+            validateCoordinate(req.getRectTop());
+            validateCoordinate(req.getRectRight());
+            validateCoordinate(req.getRectBottom());
         } else if (PetDetectionConstant.ZONE_TYPE_POLYGON.equals(req.getZoneType())) {
             if (req.getPolygonPoints() == null || req.getPolygonPoints().size() < 3) {
                 throw new BusinessException(BusinessCode.PARAM_INVALID, "多边形区域至少需要3个顶点");
             }
+            req.getPolygonPoints().forEach(point -> {
+                if (point.getX() == null || point.getY() == null) {
+                    throw new BusinessException(BusinessCode.PARAM_INVALID, "多边形顶点坐标不能为空");
+                }
+                validateCoordinate(point.getX());
+                validateCoordinate(point.getY());
+            });
         } else {
             throw new BusinessException(BusinessCode.PARAM_INVALID, "不支持的区域类型: " + req.getZoneType());
+        }
+    }
+
+    private void validateCoordinate(double coordinate) {
+        if (coordinate < 0 || coordinate > 100) {
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "区域坐标必须在0到100之间");
         }
     }
 
@@ -730,7 +715,12 @@ public class PetDetectionServiceImpl implements PetDetectionService {
             zone.setRectTop(req.getRectTop());
             zone.setRectRight(req.getRectRight());
             zone.setRectBottom(req.getRectBottom());
+            zone.setPolygonPoints(null);
         } else if (PetDetectionConstant.ZONE_TYPE_POLYGON.equals(req.getZoneType())) {
+            zone.setRectLeft(null);
+            zone.setRectTop(null);
+            zone.setRectRight(null);
+            zone.setRectBottom(null);
             try {
                 List<Map<String, Double>> points = req.getPolygonPoints().stream()
                         .map(p -> {

@@ -1,40 +1,39 @@
-import { Space, Button, Radio, Input } from 'antd';
-import { UndoOutlined, ClearOutlined } from '@ant-design/icons';
+import { Button, Segmented, Tooltip } from 'antd';
+import { AimOutlined, BorderOutlined, NodeIndexOutlined, UndoOutlined } from '@ant-design/icons';
+import type { EditorMode } from './SafeZoneCanvas';
 
 interface Props {
-  drawingMode: 'RECTANGLE' | 'POLYGON';
-  onModeChange: (mode: 'RECTANGLE' | 'POLYGON') => void;
-  onUndo: () => void;
-  onClearAll: () => void;
-  zoneName: string;
-  onZoneNameChange: (name: string) => void;
+  mode: EditorMode;
+  dirty: boolean;
+  onModeChange: (mode: EditorMode) => void;
+  onReset: () => void;
 }
 
-export default function ZoneToolbar({ drawingMode, onModeChange, onUndo, onClearAll, zoneName, onZoneNameChange }: Props) {
+export default function ZoneToolbar({ mode, dirty, onModeChange, onReset }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-3">
-      <Radio.Group value={drawingMode} onChange={(e) => onModeChange(e.target.value)}>
-        <Radio.Button value="RECTANGLE">矩形</Radio.Button>
-        <Radio.Button value="POLYGON">多边形</Radio.Button>
-      </Radio.Group>
-      <Input
-        placeholder="区域名称"
-        value={zoneName}
-        onChange={(e) => onZoneNameChange(e.target.value)}
-        style={{ width: 140 }}
-        size="small"
-      />
-      <Space size="small">
-        <Button size="small" icon={<UndoOutlined />} onClick={onUndo}>
-          撤销
+    <div className="safe-zone-toolbar">
+      <div>
+        <div className="safe-zone-toolbar__label">编辑工具</div>
+        <Segmented
+          value={mode}
+          onChange={(value) => onModeChange(value as EditorMode)}
+          options={[
+            { label: '选择调整', value: 'SELECT', icon: <AimOutlined /> },
+            { label: '矩形区域', value: 'RECTANGLE', icon: <BorderOutlined /> },
+            { label: '多边形', value: 'POLYGON', icon: <NodeIndexOutlined /> },
+          ]}
+        />
+      </div>
+      <div className="safe-zone-toolbar__guide">
+        {mode === 'SELECT' && '点击区域后可拖动，拖拽控制点可调整边界'}
+        {mode === 'RECTANGLE' && '在画面上按住并拖动，松开即可创建区域'}
+        {mode === 'POLYGON' && '逐点点击勾勒边界，双击最后一点完成'}
+      </div>
+      <Tooltip title={dirty ? '恢复到上次保存状态' : '当前没有未保存修改'}>
+        <Button icon={<UndoOutlined />} disabled={!dirty} onClick={onReset}>
+          放弃修改
         </Button>
-        <Button size="small" icon={<ClearOutlined />} danger onClick={onClearAll}>
-          清空
-        </Button>
-      </Space>
-      <span className="text-xs text-gray-400">
-        {drawingMode === 'RECTANGLE' ? '拖拽绘制矩形区域' : '点击添加顶点，双击闭合'}
-      </span>
+      </Tooltip>
     </div>
   );
 }
