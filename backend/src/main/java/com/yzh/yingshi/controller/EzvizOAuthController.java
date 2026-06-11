@@ -1,7 +1,9 @@
 package com.yzh.yingshi.controller;
 
 import com.yzh.yingshi.common.api.ApiResponse;
+import com.yzh.yingshi.common.api.BusinessCode;
 import com.yzh.yingshi.common.auth.CurrentUserService;
+import com.yzh.yingshi.common.exception.BusinessException;
 import com.yzh.yingshi.config.EzvizProperties;
 import com.yzh.yingshi.dto.EzvizOAuthCallbackDTO;
 import com.yzh.yingshi.service.EzvizOAuthService;
@@ -49,6 +51,10 @@ public class EzvizOAuthController {
     public ApiResponse<List<UserDeviceVO>> handleCallback(@RequestBody EzvizOAuthCallbackDTO dto) {
         currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
+        Long stateUserId = ezvizOAuthService.parseUserIdFromState(dto.getState());
+        if (!userId.equals(stateUserId)) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "授权回调用户不匹配");
+        }
         return ApiResponse.success(ezvizOAuthService.handleCallback(userId, dto));
     }
 

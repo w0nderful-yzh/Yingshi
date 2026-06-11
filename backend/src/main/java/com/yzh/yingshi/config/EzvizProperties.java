@@ -15,6 +15,11 @@ public class EzvizProperties {
 
     private String baseUrl;
 
+    /**
+     * 设备视频加密验证码。单设备部署可通过 EZVIZ_DEVICE_CODE 配置。
+     */
+    private String deviceCode;
+
     private OAuth oauth = new OAuth();
 
     @Data

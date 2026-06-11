@@ -15,6 +15,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -59,9 +60,31 @@ public class EzvizVideoService {
         vo.setChannelNo(channelNo);
         vo.setProtocol(protocol);
         vo.setQuality(quality);
-        vo.setUrl(url);
+        if (VideoConstant.PROTOCOL_EZOPEN.equals(protocol)) {
+            vo.setUrl(withDeviceVerificationCode(url));
+            vo.setAccessToken(token);
+        } else {
+            vo.setUrl(url);
+        }
         vo.setExpireTime(data.has("expireTime") ? data.get("expireTime").asText() : null);
         return vo;
+    }
+
+    private String withDeviceVerificationCode(String url) {
+        if (!StringUtils.hasText(ezvizProperties.getDeviceCode())
+                || !StringUtils.hasText(url)
+                || !url.startsWith("ezopen://")) {
+            return url;
+        }
+
+        String authorityAndPath = url.substring("ezopen://".length());
+        int pathStart = authorityAndPath.indexOf('/');
+        String authority = pathStart >= 0 ? authorityAndPath.substring(0, pathStart) : authorityAndPath;
+        if (authority.contains("@")) {
+            return url;
+        }
+
+        return "ezopen://" + ezvizProperties.getDeviceCode().trim() + "@" + authorityAndPath;
     }
 
 
@@ -147,7 +170,9 @@ public class EzvizVideoService {
         params.add("quality", String.valueOf(quality));
         params.add("expireTime", String.valueOf(expireTime));
         params.add("type", String.valueOf(type));
-        params.add("code", "NJIXMQ");
+        if (StringUtils.hasText(ezvizProperties.getDeviceCode())) {
+            params.add("code", ezvizProperties.getDeviceCode().trim());
+        }
 
         if (startTime != null) {
             params.add("startTime", startTime);
@@ -161,18 +186,17 @@ public class EzvizVideoService {
         try {
             RestTemplate restTemplate = new RestTemplate();
             String response = restTemplate.postForObject(url, request, String.class);
-            log.info("萤石直播地址API完整响应: {}", response);
             JsonNode root = objectMapper.readTree(response);
 
-            String code = String.valueOf(root.get("code").asText());
+            String code = root.path("code").asText();
             if ("10002".equals(code)) {
                 log.warn("萤石token过期, code=10002");
                 return null;
             }
             if (!"200".equals(code)) {
                 String msg = root.has("msg") ? root.get("msg").asText() : "unknown error";
-                log.error("萤石直播/回放地址接口失败, code={}, msg={}, 完整响应={}", code, msg, response);
-                return null;
+                log.error("萤石直播/回放地址接口失败, code={}, msg={}", code, msg);
+                throw mapLiveAddressError(code, msg);
             }
 
             JsonNode data = root.get("data");
@@ -183,6 +207,22 @@ public class EzvizVideoService {
             log.error("调用萤石直播/回放地址接口异常", e);
             return null;
         }
+    }
+
+    private BusinessException mapLiveAddressError(String code, String msg) {
+        if ("60019".equals(code)) {
+            if (!StringUtils.hasText(ezvizProperties.getDeviceCode())) {
+                return new BusinessException(
+                        BusinessCode.STATUS_CONFLICT,
+                        "设备已开启视频加密，请在 .env 中配置 EZVIZ_DEVICE_CODE（摄像头机身标签上的设备验证码）");
+            }
+            return new BusinessException(
+                    BusinessCode.STATUS_CONFLICT,
+                    "设备验证码不正确，请检查 .env 中的 EZVIZ_DEVICE_CODE");
+        }
+        return new BusinessException(
+                BusinessCode.INTERNAL_ERROR,
+                String.format("萤石直播接口失败（%s）：%s", code, msg));
     }
 
 

@@ -13,11 +13,12 @@ export default function LivePreviewPage() {
   const initialDeviceId = searchParams.get('deviceId');
   const [devices, setDevices] = useState<DeviceVO[]>([]);
   const [deviceId, setDeviceId] = useState<number | undefined>(initialDeviceId ? Number(initialDeviceId) : undefined);
-  const [protocol, setProtocol] = useState(VideoProtocol.HLS);
-  const [quality, setQuality] = useState(VideoQuality.HD);
+  const [protocol, setProtocol] = useState<number>(VideoProtocol.EZOPEN);
+  const [quality, setQuality] = useState<number>(VideoQuality.HD);
   const [liveData, setLiveData] = useState<LiveUrlVO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playerError, setPlayerError] = useState<string | null>(null);
 
   useEffect(() => {
     getDevices({ status: 'ONLINE' })
@@ -32,10 +33,10 @@ export default function LivePreviewPage() {
     }
     setLoading(true);
     setError(null);
+    setPlayerError(null);
     try {
       const data = await getLiveUrl({ deviceId, protocol, quality });
       setLiveData(data);
-      console.log('获取直播地址成功:', data);
     } catch (err: any) {
       const errMsg = err.message || '获取直播地址失败';
       setError(errMsg);
@@ -72,9 +73,9 @@ export default function LivePreviewPage() {
             onChange={setProtocol}
             style={{ width: 120 }}
             options={[
+              { label: 'EZOPEN（H.265）', value: VideoProtocol.EZOPEN },
+              { label: 'FLV（兼容）', value: VideoProtocol.FLV },
               { label: 'HLS', value: VideoProtocol.HLS },
-              { label: 'FLV', value: VideoProtocol.FLV },
-              { label: 'RTMP', value: VideoProtocol.RTMP },
             ]}
           />
           <Select
@@ -83,6 +84,7 @@ export default function LivePreviewPage() {
             style={{ width: 100 }}
             options={[
               { label: '高清', value: VideoQuality.HD },
+              { label: '流畅', value: VideoQuality.SMOOTH },
             ]}
           />
           <Button icon={<ReloadOutlined />} onClick={fetchLiveUrl} loading={loading}>
@@ -103,11 +105,39 @@ export default function LivePreviewPage() {
         />
       )}
 
-      <div className="flex gap-4">
-        <div className="flex-1">
+      {protocol !== VideoProtocol.EZOPEN && (
+        <Alert
+          type="warning"
+          message="当前协议仅适用于设备输出 H.264 的场景"
+          description="这台设备当前输出 H.265；若画面提示“视频编码类型非 H264”，请切换到 EZOPEN（H.265）。"
+          showIcon
+          className="mb-4"
+        />
+      )}
+
+      {playerError && (
+        <Alert
+          type="error"
+          message="视频播放失败"
+          description={playerError}
+          showIcon
+          closable
+          className="mb-4"
+          onClose={() => setPlayerError(null)}
+        />
+      )}
+
+      <div className="flex flex-col gap-4 xl:flex-row">
+        <div className="min-w-0 flex-1">
           <Card>
             {liveData?.url ? (
-              <VideoPlayer url={liveData.url} autoPlay controls />
+              <VideoPlayer
+                url={liveData.url}
+                accessToken={liveData.accessToken}
+                autoPlay
+                controls
+                onError={setPlayerError}
+              />
             ) : (
               <div className="flex items-center justify-center h-80 bg-gray-100 text-gray-400">
                 {loading ? '加载中...' : '请选择设备查看实时视频'}
@@ -117,7 +147,7 @@ export default function LivePreviewPage() {
         </div>
 
         {selectedDevice && (
-          <Card title="设备信息" style={{ width: 300 }}>
+          <Card title="设备信息" className="w-full xl:w-[300px] xl:shrink-0">
             <Descriptions column={1} size="small">
               <Descriptions.Item label="名称">{selectedDevice.deviceName}</Descriptions.Item>
               <Descriptions.Item label="序列号">{selectedDevice.deviceSerial}</Descriptions.Item>

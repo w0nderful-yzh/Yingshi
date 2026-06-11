@@ -70,6 +70,10 @@ public class EzvizTokenResolver {
         return ezvizTokenService.getAccessToken();
     }
 
+    public String resolveAppLevelWithRefresh() {
+        return ezvizTokenService.refreshToken();
+    }
+
     /**
      * 强制刷新 token 后返回，用于 10002 重试
      */

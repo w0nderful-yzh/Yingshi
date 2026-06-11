@@ -397,14 +397,7 @@ public class EzvizOAuthService {
                 return List.of();
             }
 
-            JsonNode listNode = root.get("data").get("list");
-            List<JsonNode> devices = new ArrayList<>();
-            if (listNode != null && listNode.isArray()) {
-                for (JsonNode node : listNode) {
-                    devices.add(node);
-                }
-            }
-            return devices;
+            return EzvizDeviceResponseParser.parseDevices(root);
         } catch (Exception e) {
             log.error("调用萤石设备列表接口异常", e);
             return List.of();

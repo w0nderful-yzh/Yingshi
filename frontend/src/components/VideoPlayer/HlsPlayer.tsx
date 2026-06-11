@@ -6,9 +6,11 @@ interface Props {
   autoPlay?: boolean;
   controls?: boolean;
   className?: string;
+  onError?: (message: string) => void;
+  fill?: boolean;
 }
 
-export default function HlsPlayer({ url, autoPlay = true, controls = true, className }: Props) {
+export default function HlsPlayer({ url, autoPlay = true, controls = true, className, onError, fill = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -27,6 +29,7 @@ export default function HlsPlayer({ url, autoPlay = true, controls = true, class
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
           console.error('HLS fatal error:', data);
+          onError?.('HLS 视频流播放失败，请切换到 FLV 协议重试');
         }
       });
       return () => {
@@ -37,7 +40,16 @@ export default function HlsPlayer({ url, autoPlay = true, controls = true, class
       video.src = url;
       if (autoPlay) video.play().catch(() => {});
     }
-  }, [url, autoPlay]);
+  }, [url, autoPlay, onError]);
 
-  return <video ref={videoRef} controls={controls} className={className} style={{ width: '100%', maxHeight: 500 }} />;
+  return (
+    <video
+      ref={videoRef}
+      controls={controls}
+      className={className}
+      style={fill
+        ? { width: '100%', height: '100%', maxHeight: 'none', objectFit: 'contain', display: 'block' }
+        : { width: '100%', maxHeight: 500 }}
+    />
+  );
 }

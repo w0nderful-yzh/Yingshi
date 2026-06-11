@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+RUN mkdir -p public/ezuikit_static \
+    && cp -R node_modules/ezuikit-js/ezuikit_static/. public/ezuikit_static/
 RUN npm run build
 
 # ---- Runtime Stage ----

@@ -5,6 +5,7 @@ export interface LiveUrlVO {
   protocol: number;
   quality: number;
   url: string;
+  accessToken?: string;
   expireTime: string;
 }
 

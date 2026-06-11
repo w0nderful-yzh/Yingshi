@@ -15,7 +15,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -40,6 +39,19 @@ public class EzvizDeviceService {
             }
         }
 
+        return devices;
+    }
+
+    public List<JsonNode> listEzvizDevicesAppLevel() {
+        String token = ezvizTokenResolver.resolveAppLevel();
+        List<JsonNode> devices = fetchDeviceList(token);
+        if (devices == null) {
+            token = ezvizTokenResolver.resolveAppLevelWithRefresh();
+            devices = fetchDeviceList(token);
+        }
+        if (devices == null) {
+            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "获取萤石设备列表失败");
+        }
         return devices;
     }
 
@@ -81,14 +93,7 @@ public class EzvizDeviceService {
                 return null;
             }
 
-            JsonNode data = root.get("data");
-            List<JsonNode> result = new ArrayList<>();
-            if (data != null && data.isArray()) {
-                for (JsonNode device : data) {
-                    result.add(device);
-                }
-            }
-            return result;
+            return EzvizDeviceResponseParser.parseDevices(root);
         } catch (Exception e) {
             log.error("调用萤石设备列表接口异常", e);
             return null;

@@ -67,9 +67,11 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
     if (!container) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width } = entry.contentRect;
-        const height = Math.round(width * 9 / 16);
-        setCanvasSize({ width: Math.round(width), height });
+        const { width, height } = entry.contentRect;
+        setCanvasSize({
+          width: Math.max(1, Math.round(width)),
+          height: Math.max(1, Math.round(height)),
+        });
       }
     });
     observer.observe(container);
@@ -285,10 +287,10 @@ export default function SafeZoneCanvas({ zones, drawingMode, onZoneComplete, sel
   };
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ aspectRatio: '16/9' }}>
+    <div ref={containerRef} className="absolute inset-0 z-10 h-full w-full">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full cursor-crosshair bg-black/20"
+        className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

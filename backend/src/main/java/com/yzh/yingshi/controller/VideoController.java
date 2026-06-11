@@ -10,6 +10,8 @@ import com.yzh.yingshi.vo.CloudRecordFileVO;
 import com.yzh.yingshi.vo.LiveUrlVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +29,7 @@ public class VideoController {
     private final VideoService videoService;
 
     @GetMapping("/live-url")
-    public ApiResponse<LiveUrlVO> getLiveUrl(
+    public ResponseEntity<ApiResponse<LiveUrlVO>> getLiveUrl(
             @RequestParam Long deviceId,
             @RequestParam(required = false) Integer protocol,
             @RequestParam(required = false) Integer quality,
@@ -37,7 +39,9 @@ public class VideoController {
         dto.setProtocol(protocol);
         dto.setQuality(quality);
         dto.setExpireTime(expireTime);
-        return ApiResponse.success(videoService.getLiveUrl(dto));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success(videoService.getLiveUrl(dto)));
     }
 
     @GetMapping("/cloud/records")

@@ -17,5 +17,11 @@ public class LiveUrlVO {
 
     private String url;
 
+    /**
+     * EZUIKit 播放 EZOPEN 地址所需的临时访问令牌。
+     * 仅在 protocol=EZOPEN 时返回。
+     */
+    private String accessToken;
+
     private String expireTime;
 }

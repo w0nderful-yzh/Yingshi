@@ -17,6 +17,13 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 萤石服务器可能直接 GET 回调此地址，只有该请求不依赖登录态。
+        // 前端提交授权结果的 POST 请求仍必须经过 JWT 校验。
+        if ("GET".equalsIgnoreCase(request.getMethod())
+                && "/api/ezviz/oauth/callback".equals(request.getRequestURI())) {
+            return true;
+        }
+
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
             response.setStatus(401);

@@ -88,6 +88,7 @@ MYSQL_PASSWORD=123456           # MySQL 应用账号密码，默认 123456
 JWT_SECRET=your_secret_key      # JWT 签名密钥
 EZVIZ_APP_KEY=your_app_key      # 萤石 AppKey
 EZVIZ_APP_SECRET=your_app_secret # 萤石 AppSecret
+EZVIZ_DEVICE_CODE=ABCDEF         # 摄像头机身标签上的设备验证码，开启视频加密时必填
 ```
 
 ### 方式二：本地开发启动

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Space, message, Descriptions, Tag } from 'antd';
+import { Alert, Card, Button, Space, message, Descriptions, Tag } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { getDetectionConfigById, getSafeZones, createSafeZone, updateSafeZone, deleteSafeZone } from '@/api/petDetection';
 import { getLiveUrl } from '@/api/video';
@@ -10,6 +10,8 @@ import SafeZoneCanvas, { type ZoneData } from '@/components/SafeZoneEditor/SafeZ
 import ZoneToolbar from '@/components/SafeZoneEditor/ZoneToolbar';
 import ZoneList from '@/components/SafeZoneEditor/ZoneList';
 import PageLoading from '@/components/PageLoading';
+import { VideoProtocol } from '@/utils/constants';
+import type { LiveUrlVO } from '@/types';
 
 export default function SafeZoneEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +24,8 @@ export default function SafeZoneEditorPage() {
   const [drawingMode, setDrawingMode] = useState<'RECTANGLE' | 'POLYGON'>('RECTANGLE');
   const [zoneName, setZoneName] = useState('');
   const [selectedZoneIdx, setSelectedZoneIdx] = useState<number | undefined>();
-  const [liveUrl, setLiveUrl] = useState<string>('');
+  const [liveData, setLiveData] = useState<LiveUrlVO | null>(null);
+  const [playerError, setPlayerError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -37,9 +40,14 @@ export default function SafeZoneEditorPage() {
 
       // Fetch live URL for the device
       try {
-        const liveData = await getLiveUrl({ deviceId: cfg.deviceId });
-        setLiveUrl(liveData.url);
+        const data = await getLiveUrl({
+          deviceId: cfg.deviceId,
+          protocol: VideoProtocol.EZOPEN,
+        });
+        setLiveData(data);
+        setPlayerError(null);
       } catch {
+        setLiveData(null);
         // Live URL not available, canvas will show without video
       }
     } catch (err: any) {
@@ -147,22 +155,9 @@ export default function SafeZoneEditorPage() {
         </Card>
       )}
 
-      <div className="flex gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col gap-4 xl:flex-row">
+        <div className="min-w-0 flex-1">
           <Card size="small">
-            {liveUrl ? (
-              <div className="relative">
-                <VideoPlayer url={liveUrl} autoPlay controls />
-                <div className="mt-2 text-xs text-gray-400">
-                  提示: 在下方画布上绘制安全区域。矩形模式：拖拽绘制；多边形模式：点击添加顶点，双击闭合。
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-400 py-4">无法获取视频流，使用空白画布绘制</div>
-            )}
-          </Card>
-
-          <Card size="small" className="mt-2">
             <ZoneToolbar
               drawingMode={drawingMode}
               onModeChange={setDrawingMode}
@@ -175,20 +170,60 @@ export default function SafeZoneEditorPage() {
               zoneName={zoneName}
               onZoneNameChange={setZoneName}
             />
-            <SafeZoneCanvas
-              zones={allCanvasZones}
-              drawingMode={drawingMode}
-              onZoneComplete={handleZoneComplete}
-              selectedZoneId={selectedZoneIdx !== undefined ? allCanvasZones[selectedZoneIdx]?.id : undefined}
-              onSelectZone={(zoneId) => {
-                const idx = allCanvasZones.findIndex((z) => z.id === zoneId);
-                setSelectedZoneIdx(idx >= 0 ? idx : undefined);
-              }}
+
+            <div className="relative w-full overflow-hidden rounded-lg bg-slate-950" style={{ aspectRatio: '16 / 9' }}>
+              {liveData?.url ? (
+                <VideoPlayer
+                  url={liveData.url}
+                  accessToken={liveData.accessToken}
+                  autoPlay
+                  controls={false}
+                  fill
+                  className="absolute inset-0 block h-full w-full object-contain"
+                  onError={setPlayerError}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                  无法获取视频流，可在空白区域继续绘制
+                </div>
+              )}
+
+              <SafeZoneCanvas
+                zones={allCanvasZones}
+                drawingMode={drawingMode}
+                onZoneComplete={handleZoneComplete}
+                selectedZoneId={selectedZoneIdx !== undefined ? allCanvasZones[selectedZoneIdx]?.id : undefined}
+                onSelectZone={(zoneId) => {
+                  const idx = allCanvasZones.findIndex((z) => z.id === zoneId);
+                  setSelectedZoneIdx(idx >= 0 ? idx : undefined);
+                }}
+              />
+
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded bg-black/55 px-2 py-1 text-xs text-white">
+                {drawingMode === 'RECTANGLE' ? '按住鼠标拖拽绘制矩形' : '依次点击顶点，双击完成区域'}
+              </div>
+            </div>
+
+            {playerError && (
+              <Alert
+                className="mt-3"
+                type="error"
+                showIcon
+                message="视频播放失败"
+                description={playerError}
+              />
+            )}
+
+            <Alert
+              className="mt-3"
+              type="info"
+              showIcon
+              message="请直接在视频画面上绘制安全区域，按 Esc 可取消当前绘制。"
             />
           </Card>
         </div>
 
-        <Card title="区域列表" size="small" style={{ width: 280 }}>
+        <Card title="区域列表" size="small" className="w-full xl:w-[280px] xl:shrink-0">
           {existingZones.length > 0 && (
             <>
               <div className="text-xs text-gray-500 mb-2">已保存的区域</div>
