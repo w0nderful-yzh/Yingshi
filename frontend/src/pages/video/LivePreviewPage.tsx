@@ -10,7 +10,7 @@ import VideoPlayer from '@/components/VideoPlayer/VideoPlayer';
 
 export default function LivePreviewPage() {
   const [searchParams] = useSearchParams();
-  const initialDeviceId = searchParams.get('deviceId');
+  const [initialDeviceId] = useState(() => searchParams.get('deviceId'));
   const [devices, setDevices] = useState<DeviceVO[]>([]);
   const [deviceId, setDeviceId] = useState<number | undefined>(initialDeviceId ? Number(initialDeviceId) : undefined);
   const [protocol, setProtocol] = useState(VideoProtocol.HLS);
@@ -24,12 +24,12 @@ export default function LivePreviewPage() {
       .then((list) => {
         setDevices(list);
         // 如果没有从 URL 参数指定设备，默认选择第一个
-        if (!initialDeviceId && list.length > 0 && !deviceId) {
-          setDeviceId(list[0].id);
+        if (!initialDeviceId && list.length > 0) {
+          setDeviceId((current) => current ?? list[0].id);
         }
       })
       .catch((err) => message.error(err.message));
-  }, []);
+  }, [initialDeviceId]);
 
   const fetchLiveUrl = useCallback(async () => {
     if (!deviceId) {

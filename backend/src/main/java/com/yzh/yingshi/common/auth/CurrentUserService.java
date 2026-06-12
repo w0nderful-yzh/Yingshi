@@ -38,9 +38,13 @@ public class CurrentUserService {
     }
 
     public Long getCurrentUserId() {
-        Object attr = request.getAttribute("userId");
-        if (attr instanceof Number number) {
-            return number.longValue();
+        try {
+            Object attr = request.getAttribute("userId");
+            if (attr instanceof Number number) {
+                return number.longValue();
+            }
+        } catch (IllegalStateException ignored) {
+            // 后台定时任务没有 HTTP 请求上下文
         }
         return null;
     }

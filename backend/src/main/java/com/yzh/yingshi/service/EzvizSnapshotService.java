@@ -14,6 +14,8 @@ public interface EzvizSnapshotService {
      */
     String captureSnapshot(String deviceSerial, Integer channelNo);
 
+    String captureSnapshotForUser(Long userId, String deviceSerial, Integer channelNo);
+
     /**
      * 获取摄像头实时截图的字节数据
      *

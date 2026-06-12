@@ -34,8 +34,9 @@ Thumbs.db
 # Env / Secret
 .env
 .env.*
+!.env.example
 application-prod.yml
-backend/src/main/resources/application-prod.yml
+!backend/src/main/resources/application-prod.yml
 
 # Claude local config
 .claude/

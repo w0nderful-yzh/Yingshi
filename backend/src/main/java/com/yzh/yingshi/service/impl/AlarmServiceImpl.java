@@ -11,8 +11,10 @@ import com.yzh.yingshi.dto.AlarmQueryDTO;
 import com.yzh.yingshi.dto.AlarmSyncResultDTO;
 import com.yzh.yingshi.entity.AlarmMessage;
 import com.yzh.yingshi.entity.Device;
+import com.yzh.yingshi.entity.UserDevice;
 import com.yzh.yingshi.mapper.AlarmMessageMapper;
 import com.yzh.yingshi.mapper.DeviceMapper;
+import com.yzh.yingshi.mapper.UserDeviceMapper;
 import com.yzh.yingshi.service.AlarmService;
 import com.yzh.yingshi.service.AlarmSseService;
 import com.yzh.yingshi.service.EzvizAlarmService;
@@ -40,6 +42,7 @@ public class AlarmServiceImpl implements AlarmService {
 
     private final DeviceMapper deviceMapper;
     private final AlarmMessageMapper alarmMessageMapper;
+    private final UserDeviceMapper userDeviceMapper;
     private final EzvizAlarmService ezvizAlarmService;
     private final ObjectMapper objectMapper;
     private final CurrentUserService currentUserService;
@@ -55,14 +58,37 @@ public class AlarmServiceImpl implements AlarmService {
                 .eq(Device::getSourceType, "EZVIZ")
                 .eq(Device::getDeleted, 0);
         List<Device> devices = deviceMapper.selectList(query);
+        List<AlarmSyncTarget> targets;
         if (currentUserService.hasAuthenticatedUser()) {
+            Long userId = currentUserService.requireCurrentUserId();
             Set<Long> authorizedDeviceIds = currentUserService.getAuthorizedDeviceIds();
             if (authorizedDeviceIds.isEmpty()) {
                 return new AlarmSyncResultDTO(0, 0, 0, "暂无可同步设备");
             }
-            devices = devices.stream()
+            targets = devices.stream()
                     .filter(device -> authorizedDeviceIds.contains(device.getId()))
+                    .map(device -> new AlarmSyncTarget(userId, device))
                     .collect(Collectors.toList());
+        } else {
+            Map<String, Device> deviceBySerial = devices.stream()
+                    .filter(device -> StringUtils.hasText(device.getDeviceSerial()))
+                    .collect(Collectors.toMap(
+                            Device::getDeviceSerial,
+                            device -> device,
+                            (first, ignored) -> first));
+            targets = userDeviceMapper.selectList(
+                            new LambdaQueryWrapper<UserDevice>().eq(UserDevice::getStatus, 1))
+                    .stream()
+                    .filter(binding -> deviceBySerial.containsKey(binding.getDeviceSerial()))
+                    .map(binding -> new AlarmSyncTarget(
+                            binding.getUserId(), deviceBySerial.get(binding.getDeviceSerial())))
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (targets.isEmpty()) {
+                targets = devices.stream()
+                        .map(device -> new AlarmSyncTarget(null, device))
+                        .collect(Collectors.toList());
+            }
         }
 
         long end = System.currentTimeMillis();
@@ -71,14 +97,17 @@ public class AlarmServiceImpl implements AlarmService {
         int fetched = 0;
         int inserted = 0;
 
-        for (Device device : devices) {
+        for (AlarmSyncTarget target : targets) {
+            Device device = target.device();
             if ("DISABLED".equals(device.getStatus())) {
                 continue;
             }
 
             try {
-                List<Map<String, Object>> alarms = ezvizAlarmService.listDeviceAlarms(
-                        device.getDeviceSerial(), start, end);
+                List<Map<String, Object>> alarms = target.userId() == null
+                        ? ezvizAlarmService.listDeviceAlarms(device.getDeviceSerial(), start, end)
+                        : ezvizAlarmService.listDeviceAlarmsForUser(
+                                target.userId(), device.getDeviceSerial(), start, end);
 
                 fetched += alarms.size();
 
@@ -93,8 +122,8 @@ public class AlarmServiceImpl implements AlarmService {
             }
         }
 
-        log.info("萤石告警同步完成 deviceCount={}, fetched={}, inserted={}", devices.size(), fetched, inserted);
-        return new AlarmSyncResultDTO(devices.size(), fetched, inserted, "同步完成");
+        log.info("萤石告警同步完成 targetCount={}, fetched={}, inserted={}", targets.size(), fetched, inserted);
+        return new AlarmSyncResultDTO(targets.size(), fetched, inserted, "同步完成");
     }
 
     private boolean saveIfAbsent(Device device, Map<String, Object> raw) {
@@ -359,5 +388,8 @@ public class AlarmServiceImpl implements AlarmService {
             }
         }
         return null;
+    }
+
+    private record AlarmSyncTarget(Long userId, Device device) {
     }
 }

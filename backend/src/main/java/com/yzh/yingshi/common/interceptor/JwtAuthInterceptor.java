@@ -17,6 +17,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if ("GET".equalsIgnoreCase(request.getMethod())
+                && "/api/ezviz/oauth/callback".equals(request.getRequestURI())) {
+            return true;
+        }
+
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);

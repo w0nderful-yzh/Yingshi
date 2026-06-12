@@ -29,11 +29,17 @@ public class EzvizAlarmService {
 
     public List<Map<String, Object>> listDeviceAlarms(String deviceSerial, Long startTime, Long endTime) {
         String accessToken = ezvizTokenResolver.resolve();
-        return doListDeviceAlarms(accessToken, deviceSerial, startTime, endTime, true);
+        return doListDeviceAlarms(accessToken, null, deviceSerial, startTime, endTime, true);
+    }
+
+    public List<Map<String, Object>> listDeviceAlarmsForUser(
+            Long userId, String deviceSerial, Long startTime, Long endTime) {
+        String accessToken = ezvizTokenResolver.resolveForUser(userId);
+        return doListDeviceAlarms(accessToken, userId, deviceSerial, startTime, endTime, true);
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> doListDeviceAlarms(String accessToken, String deviceSerial,
+    private List<Map<String, Object>> doListDeviceAlarms(String accessToken, Long userId, String deviceSerial,
                                                           Long startTime, Long endTime, boolean allowRetry) {
         String url = ezvizProperties.getBaseUrl() + "/api/lapp/alarm/device/list";
 
@@ -62,8 +68,10 @@ public class EzvizAlarmService {
 
             if ("10002".equals(code) && allowRetry) {
                 log.warn("萤石token过期, code=10002, 刷新重试");
-                String newToken = ezvizTokenResolver.resolveWithRefresh();
-                return doListDeviceAlarms(newToken, deviceSerial, startTime, endTime, false);
+                String newToken = userId == null
+                        ? ezvizTokenResolver.resolveWithRefresh()
+                        : ezvizTokenResolver.refreshForUser(userId);
+                return doListDeviceAlarms(newToken, userId, deviceSerial, startTime, endTime, false);
             }
 
             if (!"200".equals(code)) {

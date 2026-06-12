@@ -49,6 +49,7 @@ public class EzvizOAuthController {
     public ApiResponse<List<UserDeviceVO>> handleCallback(@RequestBody EzvizOAuthCallbackDTO dto) {
         currentUserService.requireWriteAccess();
         Long userId = getCurrentUserId();
+        ezvizOAuthService.verifyCallbackState(userId, dto.getState());
         return ApiResponse.success(ezvizOAuthService.handleCallback(userId, dto));
     }
 
@@ -58,15 +59,17 @@ public class EzvizOAuthController {
      */
     @GetMapping("/callback")
     public void handleOAuthCallback(
-            @RequestParam(required = false) String authCode,
+            @RequestParam(name = "auth_code", required = false) String authCode,
+            @RequestParam(name = "authCode", required = false) String legacyAuthCode,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String deviceSerials,
             @RequestParam(required = false) String deviceTrustId,
             HttpServletResponse response) throws java.io.IOException {
-        response.setContentType("application/json;charset=UTF-8");
+        String effectiveAuthCode = authCode != null ? authCode : legacyAuthCode;
 
         // 萤石验证回调地址时会无参数GET
-        if (authCode == null || state == null) {
+        if (effectiveAuthCode == null && state == null) {
+            response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":\"200\"}");
             return;
         }
@@ -75,7 +78,7 @@ public class EzvizOAuthController {
             Long userId = ezvizOAuthService.parseUserIdFromState(state);
 
             EzvizOAuthCallbackDTO dto = new EzvizOAuthCallbackDTO();
-            dto.setAuthCode(authCode);
+            dto.setAuthCode(effectiveAuthCode);
             dto.setState(state);
             dto.setDeviceSerials(deviceSerials);
             dto.setDeviceTrustId(deviceTrustId);
@@ -83,10 +86,11 @@ public class EzvizOAuthController {
             ezvizOAuthService.handleCallback(userId, dto);
 
             log.info("萤石OAuth后端回调成功, userId={}", userId);
-            response.getWriter().write("{\"code\":\"200\"}");
+            response.sendRedirect(buildFrontendCallbackUrl("success=true"));
         } catch (Exception e) {
             log.error("萤石OAuth后端回调失败", e);
-            response.getWriter().write("{\"code\":\"500\",\"msg\":\"" + e.getMessage() + "\"}");
+            String error = URLEncoder.encode("授权处理失败，请重新发起绑定", StandardCharsets.UTF_8);
+            response.sendRedirect(buildFrontendCallbackUrl("error=" + error));
         }
     }
 
@@ -123,5 +127,11 @@ public class EzvizOAuthController {
 
     private Long getCurrentUserId() {
         return (Long) request.getAttribute("userId");
+    }
+
+    private String buildFrontendCallbackUrl(String query) {
+        String frontendUrl = ezvizProperties.getOauth().getFrontendUrl();
+        String baseUrl = frontendUrl == null ? "" : frontendUrl.replaceAll("/+$", "");
+        return baseUrl + "/oauth/ezviz/callback?" + query;
     }
 }

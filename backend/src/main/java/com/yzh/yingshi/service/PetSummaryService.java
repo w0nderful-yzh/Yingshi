@@ -31,6 +31,7 @@ public class PetSummaryService {
 
     private final PetMapper petMapper;
     private final PetDetectionRecordMapper recordMapper;
+    private final PetDetectionConfigMapper configMapper;
     private final AlarmMessageMapper alarmMapper;
     private final PetAiReportMapper reportMapper;
     private final CurrentUserService currentUserService;
@@ -52,10 +53,12 @@ public class PetSummaryService {
      * 生成日报
      */
     public PetAiReportVO generateDailySummary(Long petId) {
+        currentUserService.requireWriteAccess();
+        Long userId = currentUserService.requireCurrentUserId();
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();
         LocalDateTime end = today.atTime(LocalTime.MAX);
-        return generateSummary(petId, start, end, "DAILY_SUMMARY",
+        return generateSummary(userId, petId, start, end, "DAILY_SUMMARY",
                 today + " 活动日报");
     }
 
@@ -63,17 +66,18 @@ public class PetSummaryService {
      * 生成周报
      */
     public PetAiReportVO generateWeeklySummary(Long petId) {
+        currentUserService.requireWriteAccess();
+        Long userId = currentUserService.requireCurrentUserId();
         LocalDate today = LocalDate.now();
         LocalDate weekStart = today.minusDays(6);
         LocalDateTime start = weekStart.atStartOfDay();
         LocalDateTime end = today.atTime(LocalTime.MAX);
-        return generateSummary(petId, start, end, "WEEKLY_SUMMARY",
+        return generateSummary(userId, petId, start, end, "WEEKLY_SUMMARY",
                 weekStart + " ~ " + today + " 活动周报");
     }
 
-    private PetAiReportVO generateSummary(Long petId, LocalDateTime start, LocalDateTime end,
+    private PetAiReportVO generateSummary(Long userId, Long petId, LocalDateTime start, LocalDateTime end,
                                           String sourceType, String periodLabel) {
-        Long userId = currentUserService.requireCurrentUserId();
         Pet pet = requireOwnedPet(petId, userId);
 
         // 检查是否已生成过（同一周期同一宠物）
@@ -115,7 +119,8 @@ public class PetSummaryService {
         List<Pet> pets = petMapper.selectList(new LambdaQueryWrapper<>());
         for (Pet pet : pets) {
             try {
-                generateSummary(pet.getId(), LocalDate.now().atStartOfDay(),
+                generateSummary(pet.getUserId(), pet.getId(),
+                        LocalDate.now().atStartOfDay(),
                         LocalDate.now().atTime(LocalTime.MAX),
                         "DAILY_SUMMARY", LocalDate.now() + " 活动日报");
             } catch (Exception e) {
@@ -136,7 +141,8 @@ public class PetSummaryService {
         List<Pet> pets = petMapper.selectList(new LambdaQueryWrapper<>());
         for (Pet pet : pets) {
             try {
-                generateSummary(pet.getId(), weekStart.atStartOfDay(),
+                generateSummary(pet.getUserId(), pet.getId(),
+                        weekStart.atStartOfDay(),
                         today.atTime(LocalTime.MAX),
                         "WEEKLY_SUMMARY", weekStart + " ~ " + today + " 活动周报");
             } catch (Exception e) {
@@ -159,12 +165,21 @@ public class PetSummaryService {
     ) {}
 
     private SummaryData aggregateData(Long petId, LocalDateTime start, LocalDateTime end) {
+        List<Long> configIds = configMapper.selectList(
+                        new LambdaQueryWrapper<PetDetectionConfig>()
+                                .eq(PetDetectionConfig::getPetId, petId))
+                .stream()
+                .map(PetDetectionConfig::getId)
+                .toList();
+
         // 检测记录统计
-        List<PetDetectionRecord> records = recordMapper.selectList(
-                new LambdaQueryWrapper<PetDetectionRecord>()
-                        .eq(PetDetectionRecord::getPetId, petId)
-                        .ge(PetDetectionRecord::getDetectTime, start)
-                        .le(PetDetectionRecord::getDetectTime, end));
+        List<PetDetectionRecord> records = configIds.isEmpty()
+                ? Collections.emptyList()
+                : recordMapper.selectList(
+                        new LambdaQueryWrapper<PetDetectionRecord>()
+                                .in(PetDetectionRecord::getDetectionConfigId, configIds)
+                                .ge(PetDetectionRecord::getDetectTime, start)
+                                .le(PetDetectionRecord::getDetectTime, end));
 
         int totalDetections = records.size();
         int petDetectedCount = (int) records.stream()
@@ -183,12 +198,27 @@ public class PetSummaryService {
                 detected.stream().mapToDouble(PetDetectionRecord::getPetCoordY).average().orElse(0);
 
         // 告警统计
-        LambdaQueryWrapper<AlarmMessage> alarmQuery = new LambdaQueryWrapper<AlarmMessage>()
-                .eq(AlarmMessage::getSource, "PET_DETECT")
-                .eq(AlarmMessage::getDeleted, 0)
-                .ge(AlarmMessage::getAlarmTime, start)
-                .le(AlarmMessage::getAlarmTime, end);
-        List<AlarmMessage> alarms = alarmMapper.selectList(alarmQuery);
+        List<AlarmMessage> alarms = Collections.emptyList();
+        if (!configIds.isEmpty()) {
+            LambdaQueryWrapper<AlarmMessage> alarmQuery = new LambdaQueryWrapper<AlarmMessage>()
+                    .eq(AlarmMessage::getSource, "PET_DETECT")
+                    .eq(AlarmMessage::getDeleted, 0)
+                    .ge(AlarmMessage::getAlarmTime, start)
+                    .le(AlarmMessage::getAlarmTime, end)
+                    .and(query -> {
+                        boolean first = true;
+                        for (Long configId : configIds) {
+                            if (!first) {
+                                query.or();
+                            }
+                            query.likeRight(AlarmMessage::getAlarmId, "PET_" + configId + "_")
+                                    .or()
+                                    .like(AlarmMessage::getAlarmContent, "[configId:" + configId + "]");
+                            first = false;
+                        }
+                    });
+            alarms = alarmMapper.selectList(alarmQuery);
+        }
 
         Map<String, Integer> alarmsByType = alarms.stream()
                 .collect(Collectors.groupingBy(AlarmMessage::getAlarmType, Collectors.summingInt(a -> 1)));

@@ -38,18 +38,27 @@ public class EzvizPetAiDetector implements PetAiDetector {
 
     @Override
     public List<PetDetection> detect(String imageUrl) {
+        return detectWithToken(imageUrl, ezvizTokenResolver.resolve(), null);
+    }
+
+    public List<PetDetection> detectForUser(String imageUrl, Long userId) {
+        return detectWithToken(imageUrl, ezvizTokenResolver.resolveForUser(userId), userId);
+    }
+
+    private List<PetDetection> detectWithToken(String imageUrl, String token, Long userId) {
         List<PetDetection> results = new ArrayList<>();
         if (imageUrl == null || imageUrl.isBlank()) {
             return results;
         }
 
         // 先尝试宠物检测
-        String token = ezvizTokenResolver.resolve();
         results = callDetectionApi(token, imageUrl, PET_DETECTION_PATH);
 
         // token过期重试
         if (results == null) {
-            token = ezvizTokenResolver.resolveWithRefresh();
+            token = userId == null
+                    ? ezvizTokenResolver.resolveWithRefresh()
+                    : ezvizTokenResolver.refreshForUser(userId);
             results = callDetectionApi(token, imageUrl, PET_DETECTION_PATH);
         }
 

@@ -147,7 +147,6 @@ public class EzvizVideoService {
         params.add("quality", String.valueOf(quality));
         params.add("expireTime", String.valueOf(expireTime));
         params.add("type", String.valueOf(type));
-        params.add("code", "NJIXMQ");
 
         if (startTime != null) {
             params.add("startTime", startTime);

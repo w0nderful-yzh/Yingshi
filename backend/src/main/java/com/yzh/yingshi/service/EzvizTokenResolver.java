@@ -77,7 +77,7 @@ public class EzvizTokenResolver {
         Long userId = getCurrentUserId();
         if (userId != null) {
             try {
-                String userToken = refreshToken(userId);
+                String userToken = refreshForUser(userId);
                 if (userToken != null) {
                     return userToken;
                 }
@@ -105,13 +105,13 @@ public class EzvizTokenResolver {
             return account.getAccessToken();
         }
         // 过期，尝试刷新
-        return refreshToken(userId);
+        return refreshForUser(userId);
     }
 
     /**
      * 刷新用户的萤石 token
      */
-    private String refreshToken(Long userId) {
+    public String refreshForUser(Long userId) {
         UserEzvizAccount account = userEzvizAccountMapper.selectOne(
                 new LambdaQueryWrapper<UserEzvizAccount>()
                         .eq(UserEzvizAccount::getUserId, userId)

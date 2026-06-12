@@ -207,11 +207,3 @@ CREATE TABLE IF NOT EXISTS user_device (
     INDEX idx_user_id (user_id),
     INDEX idx_device_serial (device_serial)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户设备绑定表';
-
--- ============================================================
--- 数据初始化
--- ============================================================
-
--- 默认管理员账户（密码: 123456）
-INSERT IGNORE INTO sys_user (id, username, password_hash, nickname, role_code, status)
-VALUES (1, 'admin', '$2a$10$gFcFjASQAPmUr8QHeCfBz.rlfDUyhlw7DUhPDXVIYVF7a1DyJ/coe', '超级管理员', 'ADMIN', 1);

@@ -28,11 +28,23 @@ public class EzvizSnapshotServiceImpl implements EzvizSnapshotService {
     @Override
     public String captureSnapshot(String deviceSerial, Integer channelNo) {
         String token = ezvizTokenResolver.resolve();
+        return captureWithToken(token, null, deviceSerial, channelNo);
+    }
+
+    @Override
+    public String captureSnapshotForUser(Long userId, String deviceSerial, Integer channelNo) {
+        String token = ezvizTokenResolver.resolveForUser(userId);
+        return captureWithToken(token, userId, deviceSerial, channelNo);
+    }
+
+    private String captureWithToken(String token, Long userId, String deviceSerial, Integer channelNo) {
         String url = doCapture(token, deviceSerial, channelNo);
 
         if (url == null) {
             log.warn("首次截图失败, 尝试刷新token后重试 deviceSerial={}", deviceSerial);
-            token = ezvizTokenResolver.resolveWithRefresh();
+            token = userId == null
+                    ? ezvizTokenResolver.resolveWithRefresh()
+                    : ezvizTokenResolver.refreshForUser(userId);
             url = doCapture(token, deviceSerial, channelNo);
         }
 

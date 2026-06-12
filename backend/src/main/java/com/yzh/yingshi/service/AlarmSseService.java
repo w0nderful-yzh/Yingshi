@@ -1,13 +1,17 @@
 package com.yzh.yingshi.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yzh.yingshi.entity.AlarmMessage;
+import com.yzh.yingshi.entity.UserDevice;
+import com.yzh.yingshi.mapper.UserDeviceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -20,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AlarmSseService {
 
     private final ObjectMapper objectMapper;
+    private final UserDeviceMapper userDeviceMapper;
 
     /** userId -> SseEmitter */
     private final ConcurrentHashMap<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -86,13 +91,19 @@ public class AlarmSseService {
         }
     }
 
-    /**
-     * 广播新告警给所有在线用户
-     */
-    public void broadcastAlarm(Object alarmData) {
-        for (Map.Entry<Long, SseEmitter> entry : emitters.entrySet()) {
-            pushAlarm(entry.getKey(), alarmData);
+    public void broadcastAlarm(AlarmMessage alarm) {
+        if (alarm == null || alarm.getDeviceSerial() == null) {
+            return;
         }
+        List<UserDevice> bindings = userDeviceMapper.selectList(
+                new LambdaQueryWrapper<UserDevice>()
+                        .eq(UserDevice::getDeviceSerial, alarm.getDeviceSerial())
+                        .eq(UserDevice::getStatus, 1)
+        );
+        bindings.stream()
+                .map(UserDevice::getUserId)
+                .distinct()
+                .forEach(userId -> pushAlarm(userId, alarm));
     }
 
     /**

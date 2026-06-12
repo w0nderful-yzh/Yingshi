@@ -58,7 +58,7 @@
 - Node.js 18+
 - MySQL 8.x
 - 萤石开放平台账号（获取 AppKey / AppSecret）
-- DeepSeek API Key（可选，用于 AI 助手功能）
+- DeepSeek API Key（当前启动配置必需，用于 AI 助手功能）
 
 ### 方式一：Docker Compose 一键部署（推荐）
 
@@ -67,7 +67,7 @@
 git clone <repo-url>
 cd Yingshi
 
-# 2. 复制环境变量模板并填入 API Key（AI 功能需要，不填也能启动）
+# 2. 复制环境变量模板并填入 API Key
 cp .env.example .env
 vim .env   # 填入 LLM_API_KEY、MIMO_API_KEY 和萤石配置
 
@@ -75,7 +75,7 @@ vim .env   # 填入 LLM_API_KEY、MIMO_API_KEY 和萤石配置
 docker compose up -d --build
 ```
 
-启动后访问 `http://localhost`，使用默认账号登录。
+启动后访问 `http://localhost`，本地演示编排可使用默认账号登录。
 
 > MySQL 数据库、表结构、默认管理员账号均自动初始化，无需手动操作。
 
@@ -124,11 +124,13 @@ npm run dev
 
 前端默认运行在 `http://localhost:5173`，自动代理 `/api` 请求到后端。
 
-### 默认账号
+### 本地演示默认账号
 
 | 用户名 | 密码 | 角色 |
 |--------|------|------|
 | admin  | 123456 | ADMIN |
+
+该账号只由 `demo-data.sql` 注入本地开发环境。生产编排不会创建默认账号，公网部署步骤见 [docs/deploy.md](./docs/deploy.md)。
 
 ## 角色与权限
 
@@ -156,7 +158,7 @@ npm run dev
 - 配置位置：`backend/src/main/resources/application.yml`
 - 当前行为：当用户还没有绑定任何萤石设备时，允许直接访问数据库中已有的设备记录，便于本地联调设备管理、视频、检测和告警功能
 
-如果后期要恢复正式策略，请将下面配置改为 `false`：
+生产 profile 已强制关闭该兜底。手动部署时也应将下面配置设为 `false`：
 
 ```yml
 app:
@@ -168,6 +170,12 @@ app:
 
 - 用户必须先完成萤石设备绑定
 - 设备、视频、告警、检测记录将重新严格按 `user_device` 绑定关系做访问控制
+
+### 萤石回调说明
+
+- 已实现：设备托管 OAuth 授权回调 `/api/ezviz/oauth/callback`
+- 尚未实现：云信令“消息推送 Webhook”；当前萤石告警仍由后端每 60 秒轮询同步
+- 公网回调必须配置域名和 HTTPS，具体环境变量、反向代理和验收步骤见 [docs/deploy.md](./docs/deploy.md)
 
 ## 项目结构
 
@@ -260,7 +268,7 @@ Yingshi/
 - [ ] 宠物活动数据统计与可视化图表
 - [ ] 宠物喂食 / 用药提醒与日程管理
 - [ ] 多用户家庭成员协作与权限细粒度控制
-- [ ] C 端设备托管/授权模式 — 用户通过萤石 OAuth 授权页绑定自己的设备，后端用 auth_code 换取托管 token，建立用户-设备权限关系
+- [x] C 端设备托管/授权模式 — 用户通过萤石 OAuth 授权页绑定自己的设备，后端用 auth_code 换取托管 token，建立用户-设备权限关系
 - [ ] 云端录像自动回放关联报警事件
 - [ ] 检测算法参数自动调优
 - [ ] **AI 优化**

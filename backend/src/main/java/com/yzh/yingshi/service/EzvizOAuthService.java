@@ -32,7 +32,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -55,14 +57,16 @@ public class EzvizOAuthService {
 
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final String STATE_SEPARATOR = "::";
+    private static final Duration STATE_TTL = Duration.ofMinutes(10);
 
     /**
      * 生成萤石 OAuth 授权页 URL
-     * state 格式: {nonce}::{userId}::{signature}
+     * state 格式: {nonce}::{issuedAtEpochSecond}::{userId}::{signature}
      */
     public EzvizAuthUrlVO generateAuthUrl(Long userId) {
         String nonce = UUID.randomUUID().toString().replace("-", "");
-        String payload = nonce + STATE_SEPARATOR + userId;
+        String issuedAt = String.valueOf(Instant.now().getEpochSecond());
+        String payload = nonce + STATE_SEPARATOR + issuedAt + STATE_SEPARATOR + userId;
         String signature = signState(payload);
         String state = payload + STATE_SEPARATOR + signature;
 
@@ -78,34 +82,33 @@ public class EzvizOAuthService {
     }
 
     private String resolveRedirectUri() {
-        String frontendUrl = ezvizProperties.getOauth().getFrontendUrl();
-        if (StringUtils.hasText(frontendUrl)) {
-            return frontendUrl.replaceAll("/+$", "") + "/oauth/ezviz/callback";
+        String redirectUri = ezvizProperties.getOauth().getRedirectUri();
+        if (!StringUtils.hasText(redirectUri)) {
+            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "萤石OAuth回调地址未配置");
         }
-        return ezvizProperties.getOauth().getRedirectUri();
+        return redirectUri;
     }
 
     /**
      * 从 state 参数中解析 userId，同时验证 HMAC 签名
-     * 格式: {nonce}::{userId}::{signature}
+     * 格式: {nonce}::{issuedAtEpochSecond}::{userId}::{signature}
      */
     public Long parseUserIdFromState(String state) {
         if (state == null || state.isBlank()) {
             throw new BusinessException(BusinessCode.PARAM_INVALID, "state参数不能为空");
         }
 
-        // 按 :: 分割，应该有 3 部分: nonce, userId, signature
-        String[] parts = state.split(STATE_SEPARATOR);
-        if (parts.length != 3) {
+        String[] parts = state.split(STATE_SEPARATOR, -1);
+        if (parts.length != 4) {
             throw new BusinessException(BusinessCode.PARAM_INVALID, "state格式无效");
         }
 
         String nonce = parts[0];
-        String userIdStr = parts[1];
-        String signature = parts[2];
+        String issuedAtStr = parts[1];
+        String userIdStr = parts[2];
+        String signature = parts[3];
 
-        // 重建 payload 并验证签名
-        String payload = nonce + STATE_SEPARATOR + userIdStr;
+        String payload = nonce + STATE_SEPARATOR + issuedAtStr + STATE_SEPARATOR + userIdStr;
         String expectedSignature = signState(payload);
         if (!constantTimeEquals(expectedSignature, signature)) {
             log.warn("OAuth state签名验证失败, 可能被篡改");
@@ -113,9 +116,21 @@ public class EzvizOAuthService {
         }
 
         try {
+            long issuedAt = Long.parseLong(issuedAtStr);
+            long ageSeconds = Instant.now().getEpochSecond() - issuedAt;
+            if (ageSeconds < 0 || ageSeconds > STATE_TTL.toSeconds()) {
+                throw new BusinessException(BusinessCode.PARAM_INVALID, "state已过期，请重新授权");
+            }
             return Long.parseLong(userIdStr);
         } catch (NumberFormatException e) {
-            throw new BusinessException(BusinessCode.PARAM_INVALID, "state中userId解析失败");
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "state参数解析失败");
+        }
+    }
+
+    public void verifyCallbackState(Long expectedUserId, String state) {
+        Long stateUserId = parseUserIdFromState(state);
+        if (!stateUserId.equals(expectedUserId)) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "OAuth回调用户不匹配");
         }
     }
 
@@ -156,6 +171,10 @@ public class EzvizOAuthService {
      */
     @Transactional
     public List<UserDeviceVO> handleCallback(Long userId, EzvizOAuthCallbackDTO dto) {
+        if (dto == null || !StringUtils.hasText(dto.getAuthCode())) {
+            throw new BusinessException(BusinessCode.PARAM_INVALID, "auth_code不能为空");
+        }
+
         // 1. 用 authCode 换 token
         String tokenUrl = ezvizProperties.getBaseUrl() + "/api/lapp/token/v2/get";
         HttpHeaders headers = new HttpHeaders();

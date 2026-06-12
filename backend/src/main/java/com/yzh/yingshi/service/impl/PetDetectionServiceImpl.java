@@ -242,9 +242,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         }
 
         PetDetectionConfig config = configMapper.selectById(zone.getDetectionConfigId());
-        if (config != null) {
-            checkOwnership(config.getUserId());
+        if (config == null) {
+            throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "安全区域关联的检测配置不存在");
         }
+        checkOwnership(config.getUserId());
 
         validateZoneRequest(req);
 
@@ -265,9 +266,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         }
 
         PetDetectionConfig config = configMapper.selectById(zone.getDetectionConfigId());
-        if (config != null) {
-            checkOwnership(config.getUserId());
+        if (config == null) {
+            throw new BusinessException(BusinessCode.RESOURCE_NOT_FOUND, "安全区域关联的检测配置不存在");
         }
+        checkOwnership(config.getUserId());
 
         safeZoneMapper.deleteById(id);
     }
@@ -496,7 +498,8 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         // 1. 获取截图
         String snapshotUrl = null;
         try {
-            snapshotUrl = ezvizSnapshotService.captureSnapshot(device.getDeviceSerial(), device.getChannelNo());
+            snapshotUrl = ezvizSnapshotService.captureSnapshotForUser(
+                    config.getUserId(), device.getDeviceSerial(), device.getChannelNo());
         } catch (Exception e) {
             log.warn("获取截图失败 deviceSerial={}: {}", device.getDeviceSerial(), e.getMessage());
         }
@@ -505,7 +508,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         // 2. 萤石AI宠物检测
         List<PetAiDetector.PetDetection> detections;
         try {
-            detections = ezvizPetAiDetector.detect(snapshotUrl);
+            detections = ezvizPetAiDetector.detectForUser(snapshotUrl, config.getUserId());
         } catch (Exception e) {
             log.error("萤石AI检测失败 configId={}: {}", config.getId(), e.getMessage());
             result.setMessage("AI检测失败: " + e.getMessage());

@@ -14,6 +14,7 @@ import com.yzh.yingshi.vo.AuthLoginVO;
 import com.yzh.yingshi.vo.UserInfoVO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +31,15 @@ public class AuthServiceImpl implements AuthService {
     private final HttpServletRequest httpServletRequest;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    @Value("${app.auth.registration-enabled:true}")
+    private boolean registrationEnabled;
+
     @Override
     public AuthLoginVO register(AuthRegisterRequest request) {
+        if (!registrationEnabled) {
+            throw new BusinessException(BusinessCode.FORBIDDEN, "当前环境未开放自助注册");
+        }
+
         QueryWrapper<SysUser> qw = new QueryWrapper<>();
         qw.eq("username", request.getUsername());
         if (sysUserMapper.selectOne(qw) != null) {

@@ -12,7 +12,7 @@ export default function OAuthCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     const success = params.get('success') === 'true';
     const error = params.get('error');
-    const authCode = params.get('authCode') || params.get('code');
+    const authCode = params.get('auth_code') || params.get('authCode') || params.get('code');
     const state = params.get('state');
     const deviceSerials = params.get('deviceSerials') || undefined;
     const deviceTrustId = params.get('deviceTrustId') || undefined;
