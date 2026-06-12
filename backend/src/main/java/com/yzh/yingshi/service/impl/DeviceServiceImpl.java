@@ -35,15 +35,24 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public DeviceSyncResultDTO syncFromEzviz() {
         Set<String> authorizedSerials = currentUserService.getAuthorizedDeviceSerials();
-        if (authorizedSerials.isEmpty()) {
+        boolean unboundMode = currentUserService.isAllowUnboundDeviceAccess();
+
+        if (authorizedSerials.isEmpty() && !unboundMode) {
             throw new BusinessException(BusinessCode.STATUS_CONFLICT, "请先绑定萤石设备后再同步");
         }
 
         List<JsonNode> ezvizDevices = ezvizDeviceService.listEzvizDevices();
-        List<JsonNode> matchedDevices = ezvizDevices.stream()
-                .filter(device -> device.hasNonNull("deviceSerial")
-                        && authorizedSerials.contains(device.get("deviceSerial").asText()))
-                .collect(Collectors.toList());
+
+        // 未绑定模式下数据库无设备时，同步全部；否则按授权序列号过滤
+        List<JsonNode> matchedDevices;
+        if (authorizedSerials.isEmpty()) {
+            matchedDevices = ezvizDevices;
+        } else {
+            matchedDevices = ezvizDevices.stream()
+                    .filter(device -> device.hasNonNull("deviceSerial")
+                            && authorizedSerials.contains(device.get("deviceSerial").asText()))
+                    .collect(Collectors.toList());
+        }
 
         int total = matchedDevices.size();
         int inserted = 0;

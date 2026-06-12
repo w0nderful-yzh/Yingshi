@@ -76,6 +76,10 @@ public class CurrentUserService {
         }
     }
 
+    public boolean isAllowUnboundDeviceAccess() {
+        return allowUnboundDeviceAccess;
+    }
+
     public Set<String> getAuthorizedDeviceSerials() {
         Long userId = requireCurrentUserId();
         List<UserDevice> bindings = userDeviceMapper.selectList(
