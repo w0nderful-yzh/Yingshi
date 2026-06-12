@@ -67,8 +67,9 @@ public class EzvizOAuthController {
             HttpServletResponse response) throws java.io.IOException {
         String effectiveAuthCode = authCode != null ? authCode : legacyAuthCode;
 
-        // 萤石验证回调地址时会无参数GET
-        if (effectiveAuthCode == null && state == null) {
+        // 萤石验证回调地址时可能无参数GET，也可能带测试参数（如 auth_code=test）
+        // 只要没有合法的 state（由我们自己的授权 URL 生成），一律视为验证请求，返回成功
+        if (state == null || state.isBlank()) {
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":\"200\"}");
             return;
