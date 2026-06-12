@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Empty, Input, Select, Spin, message } from 'antd';
+import { Button, Empty, Input, Select, Spin, message, Tooltip } from 'antd';
 import {
   Bell,
   BrainCircuit,
@@ -12,9 +12,16 @@ import {
   ShieldCheck,
   Sparkles,
   TriangleAlert,
+  CalendarDays,
+  CalendarRange,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { generatePetAiReport, getPetAiReports } from '@/api/petAi';
+import {
+  generatePetAiReport,
+  getPetAiReports,
+  generateDailySummary,
+  generateWeeklySummary,
+} from '@/api/petAi';
 import { getPets } from '@/api/pet';
 import type {
   PetAiReportQuery,
@@ -38,20 +45,24 @@ const sourceMeta: Record<PetAiSourceType, { label: string; icon: typeof Bell }> 
   ALARM: { label: '告警事件', icon: Bell },
   DETECTION: { label: '检测记录', icon: ScanSearch },
   IMAGE: { label: '手动图像', icon: Camera },
+  DAILY_SUMMARY: { label: '每日报告', icon: CalendarDays },
+  WEEKLY_SUMMARY: { label: '每周报告', icon: CalendarRange },
 };
 
 function ReportDetail({ report }: { report: PetAiReportVO }) {
-  const SourceIcon = sourceMeta[report.sourceType].icon;
+  const SourceIcon = sourceMeta[report.sourceType]?.icon ?? FileText;
   return (
     <article className="ai-report">
       <div className="ai-report__hero">
-        <div className="ai-report__image-wrap">
-          <img src={report.imageUrl} alt={`${report.petName}的监控证据`} />
-          <div className="ai-report__image-label">
-            <Camera size={13} />
-            原始证据画面
+        {report.imageUrl && (
+          <div className="ai-report__image-wrap">
+            <img src={report.imageUrl} alt={`${report.petName}的监控证据`} />
+            <div className="ai-report__image-label">
+              <Camera size={13} />
+              原始证据画面
+            </div>
           </div>
-        </div>
+        )}
         <div className="ai-report__summary">
           <div className={`ai-risk ai-risk--${report.riskLevel.toLowerCase()}`}>
             {report.riskLevel === 'HIGH' ? <TriangleAlert size={16} /> : <ShieldCheck size={16} />}
@@ -59,14 +70,14 @@ function ReportDetail({ report }: { report: PetAiReportVO }) {
           </div>
           <div className="ai-report__source">
             <SourceIcon size={14} />
-            {sourceMeta[report.sourceType].label}
+            {sourceMeta[report.sourceType]?.label ?? report.sourceType}
             {report.sourceId ? ` #${report.sourceId}` : ''}
           </div>
           <h2>{report.title}</h2>
           <p>{report.summary}</p>
           <div className="ai-report__meta">
             <span><strong>{report.petName}</strong><small>分析对象</small></span>
-            <span><strong>{report.modelName}</strong><small>视觉模型</small></span>
+            <span><strong>{report.modelName}</strong><small>分析模型</small></span>
             <span><strong>{formatDate(report.sourceTime || report.createdAt)}</strong><small>事件时间</small></span>
           </div>
         </div>
@@ -181,12 +192,34 @@ export default function PetAiPage() {
     }
   };
 
+  const handleSummary = async (type: 'daily' | 'weekly') => {
+    if (!petId) {
+      message.warning('请先选择宠物');
+      return;
+    }
+    setGenerating(true);
+    try {
+      const fn = type === 'daily' ? generateDailySummary : generateWeeklySummary;
+      const report = await fn(petId);
+      setReports((current) => [report, ...current]);
+      handleSelect(report.id);
+      message.success(type === 'daily' ? '日报已生成' : '周报已生成');
+    } catch (err: any) {
+      message.error(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const highRiskCount = reports.filter((item) => item.riskLevel === 'HIGH').length;
   const todayCount = reports.filter((item) => {
     const date = new Date(item.createdAt);
     const today = new Date();
     return date.toDateString() === today.toDateString();
   }).length;
+  const summaryCount = reports.filter((item) =>
+    item.sourceType === 'DAILY_SUMMARY' || item.sourceType === 'WEEKLY_SUMMARY'
+  ).length;
 
   return (
     <div className="ai-center">
@@ -203,7 +236,7 @@ export default function PetAiPage() {
         <div><BrainCircuit size={18} /><span><small>累计报告</small><strong>{reports.length}</strong></span></div>
         <div><TriangleAlert size={18} /><span><small>高风险事件</small><strong>{highRiskCount}</strong></span></div>
         <div><Clock3 size={18} /><span><small>今日生成</small><strong>{todayCount}</strong></span></div>
-        <div><ShieldCheck size={18} /><span><small>分析模型</small><strong>MiMo 2.5</strong></span></div>
+        <div><CalendarDays size={18} /><span><small>活动总结</small><strong>{summaryCount}</strong></span></div>
       </div>
 
       <section className="ai-compose">
@@ -222,7 +255,15 @@ export default function PetAiPage() {
         />
         <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="萤石截图或公网图片 URL" />
         <TextArea value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="希望 AI 重点关注什么？（可选）" autoSize={{ minRows: 1, maxRows: 2 }} />
-        <Button type="primary" icon={<Sparkles size={15} />} loading={generating} onClick={handleManualGenerate}>生成报告</Button>
+        <div className="ai-compose__actions">
+          <Button type="primary" icon={<Sparkles size={15} />} loading={generating} onClick={handleManualGenerate}>生成报告</Button>
+          <Tooltip title="汇总今日检测数据，生成活动日报">
+            <Button icon={<CalendarDays size={15} />} loading={generating} onClick={() => handleSummary('daily')}>生成日报</Button>
+          </Tooltip>
+          <Tooltip title="汇总近7天检测数据，生成活动周报">
+            <Button icon={<CalendarRange size={15} />} loading={generating} onClick={() => handleSummary('weekly')}>生成周报</Button>
+          </Tooltip>
+        </div>
       </section>
 
       <div className="ai-center__workspace">
@@ -248,7 +289,7 @@ export default function PetAiPage() {
             ) : reports.length === 0 ? (
               <div className="ai-history__state"><Empty description="还没有分析报告" /></div>
             ) : reports.map((report) => {
-              const SourceIcon = sourceMeta[report.sourceType].icon;
+              const SourceIcon = sourceMeta[report.sourceType]?.icon ?? FileText;
               return (
                 <button
                   type="button"
@@ -258,7 +299,7 @@ export default function PetAiPage() {
                 >
                   <span className={`ai-history__risk ai-history__risk--${report.riskLevel.toLowerCase()}`} />
                   <span className="ai-history__copy">
-                    <span><SourceIcon size={13} />{sourceMeta[report.sourceType].label}</span>
+                    <span><SourceIcon size={13} />{sourceMeta[report.sourceType]?.label ?? report.sourceType}</span>
                     <strong>{report.title}</strong>
                     <small>{report.summary}</small>
                     <time>{formatDate(report.createdAt)}</time>

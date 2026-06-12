@@ -2038,6 +2038,11 @@ body {
     linear-gradient(100deg, rgba(226, 241, 233, .86), rgba(255, 255, 255, .93) 38%),
     #fff;
 }
+.ai-compose__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .ai-compose__intro { display: flex; align-items: center; gap: 10px; }
 .ai-compose__intro > span {
   display: inline-flex;
@@ -2122,6 +2127,10 @@ body {
   grid-template-columns: minmax(320px, .9fr) minmax(360px, 1.1fr);
   min-height: 330px;
   border-bottom: 1px solid var(--ai-line);
+}
+.ai-report__hero:has(> :only-child) {
+  grid-template-columns: 1fr;
+  min-height: auto;
 }
 .ai-report__image-wrap { position: relative; min-height: 330px; overflow: hidden; background: #16221c; }
 .ai-report__image-wrap img { width: 100%; height: 100%; min-height: 330px; object-fit: contain; }

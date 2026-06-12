@@ -1,4 +1,4 @@
-export type PetAiSourceType = 'ALARM' | 'DETECTION' | 'IMAGE';
+export type PetAiSourceType = 'ALARM' | 'DETECTION' | 'IMAGE' | 'DAILY_SUMMARY' | 'WEEKLY_SUMMARY';
 export type PetAiRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export interface PetAiReportGenerateRequest {

@@ -3,10 +3,12 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuthStore } from '@/store/authStore';
 import { useAlarmStore } from '@/store/alarmStore';
+import { useAlarmSse } from '@/hooks/useAlarmSse';
 
 export default function AuthGuard() {
   const { isAuthenticated, loading, initialize } = useAuthStore();
   const { startPolling, stopPolling } = useAlarmStore();
+  const { connect: connectSse, disconnect: disconnectSse } = useAlarmSse();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,9 +24,13 @@ export default function AuthGuard() {
   useEffect(() => {
     if (isAuthenticated) {
       startPolling();
-      return () => stopPolling();
+      connectSse();
+      return () => {
+        stopPolling();
+        disconnectSse();
+      };
     }
-  }, [isAuthenticated, startPolling, stopPolling]);
+  }, [isAuthenticated, startPolling, stopPolling, connectSse, disconnectSse]);
 
   if (loading) {
     return (

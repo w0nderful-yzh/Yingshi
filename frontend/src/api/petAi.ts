@@ -57,3 +57,19 @@ export function getPetAiReports(params?: PetAiReportQuery) {
 export function getPetAiReport(id: number) {
   return request.get<any, PetAiReportVO>(`/api/pet-ai/reports/${id}`);
 }
+
+/** 生成宠物活动日报 */
+export function generateDailySummary(petId: number) {
+  return request.post<any, PetAiReportVO>('/api/pet-ai/reports/daily-summary', null, {
+    params: { petId },
+    timeout: 120000,
+  });
+}
+
+/** 生成宠物活动周报 */
+export function generateWeeklySummary(petId: number) {
+  return request.post<any, PetAiReportVO>('/api/pet-ai/reports/weekly-summary', null, {
+    params: { petId },
+    timeout: 120000,
+  });
+}

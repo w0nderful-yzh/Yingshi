@@ -8,7 +8,9 @@ import com.yzh.yingshi.constant.AlarmConstant;
 import com.yzh.yingshi.constant.PetDetectionConstant;
 import com.yzh.yingshi.entity.*;
 import com.yzh.yingshi.mapper.*;
+import com.yzh.yingshi.service.AlarmSseService;
 import com.yzh.yingshi.service.PetAbnormalAnalysisService;
+import com.yzh.yingshi.service.PetAutoAnalysisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ public class PetAbnormalAnalysisServiceImpl implements PetAbnormalAnalysisServic
     private final PetMapper petMapper;
     private final AlarmMessageMapper alarmMessageMapper;
     private final CurrentUserService currentUserService;
+    private final PetAutoAnalysisService petAutoAnalysisService;
+    private final AlarmSseService alarmSseService;
 
     @Override
     public void analyzeAll() {
@@ -294,6 +298,10 @@ public class PetAbnormalAnalysisServiceImpl implements PetAbnormalAnalysisServic
 
         try {
             alarmMessageMapper.insert(alarm);
+            // SSE推送新告警
+            alarmSseService.broadcastAlarm(alarm);
+            // 异步触发AI自动分析
+            petAutoAnalysisService.analyzeAlarmAsync(alarm.getId());
         } catch (Exception e) {
             log.warn("插入异常行为告警失败: {}", e.getMessage());
         }

@@ -31,7 +31,8 @@
       "Bash(docker-compose --version)",
       "Bash(docker-compose ps *)",
       "Bash(docker builder prune *)",
-      "Bash(mysql -u yzh666 -p123456 yingshi -e \"SELECT id, username, HEX\\(nickname\\), nickname FROM sys_user LIMIT 5;\")"
+      "Bash(mysql -u yzh666 -p123456 yingshi -e \"SELECT id, username, HEX\\(nickname\\), nickname FROM sys_user LIMIT 5;\")",
+      "Bash(xargs cat)"
     ]
   }
 }

@@ -3,6 +3,7 @@ package com.yzh.yingshi.controller;
 import com.yzh.yingshi.common.api.ApiResponse;
 import com.yzh.yingshi.dto.PetAiReportGenerateRequest;
 import com.yzh.yingshi.service.PetAiReportService;
+import com.yzh.yingshi.service.PetSummaryService;
 import com.yzh.yingshi.vo.PetAiReportVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ import java.util.List;
 public class PetAiReportController {
 
     private final PetAiReportService reportService;
+    private final PetSummaryService petSummaryService;
 
     @Operation(summary = "生成AI事件分析报告")
     @PostMapping("/generate")
@@ -45,5 +47,17 @@ public class PetAiReportController {
     @GetMapping("/{id}")
     public ApiResponse<PetAiReportVO> detail(@PathVariable Long id) {
         return ApiResponse.success(reportService.detail(id));
+    }
+
+    @Operation(summary = "生成宠物活动日报")
+    @PostMapping("/daily-summary")
+    public ApiResponse<PetAiReportVO> dailySummary(@RequestParam Long petId) {
+        return ApiResponse.success(petSummaryService.generateDailySummary(petId));
+    }
+
+    @Operation(summary = "生成宠物活动周报")
+    @PostMapping("/weekly-summary")
+    public ApiResponse<PetAiReportVO> weeklySummary(@RequestParam Long petId) {
+        return ApiResponse.success(petSummaryService.generateWeeklySummary(petId));
     }
 }

@@ -5,6 +5,7 @@ import com.yzh.yingshi.common.auth.CurrentUserService;
 import com.yzh.yingshi.dto.AlarmQueryDTO;
 import com.yzh.yingshi.dto.AlarmSyncResultDTO;
 import com.yzh.yingshi.service.AlarmService;
+import com.yzh.yingshi.service.AlarmSseService;
 import com.yzh.yingshi.vo.AlarmMessageVO;
 import com.yzh.yingshi.vo.AlarmUnreadCountVO;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Validated
@@ -27,7 +30,18 @@ import java.util.List;
 public class AlarmController {
 
     private final AlarmService alarmService;
+    private final AlarmSseService alarmSseService;
     private final CurrentUserService currentUserService;
+
+    /**
+     * SSE 告警推送流
+     * 前端通过 EventSource 连接，token 通过 query 参数传递
+     */
+    @GetMapping("/stream")
+    public SseEmitter stream(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return alarmSseService.subscribe(userId);
+    }
 
     @PostMapping("/sync")
     public ApiResponse<AlarmSyncResultDTO> sync() {

@@ -18,7 +18,14 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String token = request.getHeader("Authorization");
-        if (token == null || !token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            // SSE 等无法设置 Header 的场景，支持 query 参数传递 token
+            token = request.getParameter("token");
+        }
+
+        if (token == null || token.isBlank()) {
             response.setStatus(401);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":40100,\"message\":\"用户未登录\"}");
@@ -26,7 +33,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
 
         try {
-            Map<String, Object> claims = jwtUtil.parseToken(token.substring(7));
+            Map<String, Object> claims = jwtUtil.parseToken(token);
             // JWT反序列化小数字为Integer, 统一转为Long避免下游ClassCastException
             Object userIdObj = claims.get("userId");
             Long userId = userIdObj instanceof Number ? ((Number) userIdObj).longValue() : null;

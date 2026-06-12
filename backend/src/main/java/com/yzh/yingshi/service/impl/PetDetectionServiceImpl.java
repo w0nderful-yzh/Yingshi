@@ -14,8 +14,10 @@ import com.yzh.yingshi.dto.PetSafeZoneRequest;
 import com.yzh.yingshi.entity.*;
 import com.yzh.yingshi.mapper.*;
 import com.yzh.yingshi.config.PetDetectionProperties;
+import com.yzh.yingshi.service.AlarmSseService;
 import com.yzh.yingshi.service.EzvizSnapshotService;
 import com.yzh.yingshi.service.PetAiDetector;
+import com.yzh.yingshi.service.PetAutoAnalysisService;
 import com.yzh.yingshi.service.PetDetectionService;
 import com.yzh.yingshi.vo.AlarmMessageVO;
 import com.yzh.yingshi.vo.PetDetectionConfigVO;
@@ -48,6 +50,8 @@ public class PetDetectionServiceImpl implements PetDetectionService {
     private final EzvizPetAiDetector ezvizPetAiDetector;
     private final PetSafeZoneEvaluator safeZoneEvaluator;
     private final PetDetectionProperties detectionProperties;
+    private final PetAutoAnalysisService petAutoAnalysisService;
+    private final AlarmSseService alarmSseService;
     private final ObjectMapper objectMapper;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -629,6 +633,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
 
         try {
             alarmMessageMapper.insert(alarm);
+            // SSE推送新告警
+            alarmSseService.broadcastAlarm(alarm);
+            // 异步触发AI自动分析
+            petAutoAnalysisService.analyzeAlarmAsync(alarm.getId());
         } catch (Exception e) {
             log.warn("插入宠物越界告警失败(可能重复): {}", e.getMessage());
         }

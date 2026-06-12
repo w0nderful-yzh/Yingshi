@@ -14,6 +14,7 @@ import com.yzh.yingshi.entity.Device;
 import com.yzh.yingshi.mapper.AlarmMessageMapper;
 import com.yzh.yingshi.mapper.DeviceMapper;
 import com.yzh.yingshi.service.AlarmService;
+import com.yzh.yingshi.service.AlarmSseService;
 import com.yzh.yingshi.service.EzvizAlarmService;
 import com.yzh.yingshi.vo.AlarmMessageVO;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class AlarmServiceImpl implements AlarmService {
     private final EzvizAlarmService ezvizAlarmService;
     private final ObjectMapper objectMapper;
     private final CurrentUserService currentUserService;
+    private final AlarmSseService alarmSseService;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -141,6 +143,8 @@ public class AlarmServiceImpl implements AlarmService {
 
         try {
             alarmMessageMapper.insert(entity);
+            // SSE推送新告警
+            alarmSseService.broadcastAlarm(entity);
             return true;
         } catch (Exception e) {
             // 唯一索引冲突视为重复
