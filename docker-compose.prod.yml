@@ -27,6 +27,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+      ALLOW_UNBOUND_DEVICE_ACCESS: ${ALLOW_UNBOUND_DEVICE_ACCESS:-false}
       SCHEDULING_ENABLED: ${SCHEDULING_ENABLED:-true}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}

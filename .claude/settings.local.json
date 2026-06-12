@@ -33,7 +33,12 @@
       "Bash(docker builder prune *)",
       "Bash(mysql -u yzh666 -p123456 yingshi -e \"SELECT id, username, HEX\\(nickname\\), nickname FROM sys_user LIMIT 5;\")",
       "Bash(xargs cat)",
-      "Bash(./mvnw test *)"
+      "Bash(./mvnw test *)",
+      "Bash(git push *)",
+      "Bash(ssh *)",
+      "Bash(git ls-remote *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }

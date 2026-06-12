@@ -5,7 +5,7 @@ spring:
 
 app:
   auth:
-    allow-unbound-device-access: false
+    allow-unbound-device-access: ${ALLOW_UNBOUND_DEVICE_ACCESS:false}
     registration-enabled: ${REGISTRATION_ENABLED:false}
 
 mybatis-plus:
