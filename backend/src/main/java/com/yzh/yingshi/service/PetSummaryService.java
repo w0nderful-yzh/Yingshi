@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 public class PetSummaryService {
 
     private final PetMapper petMapper;
-    private final PetDetectionConfigMapper configMapper;
     private final PetDetectionRecordMapper recordMapper;
     private final AlarmMessageMapper alarmMapper;
     private final PetAiReportMapper reportMapper;
@@ -113,8 +112,7 @@ public class PetSummaryService {
      * 定时任务：自动生成所有宠物的日报
      */
     public void generateDailySummariesForAll() {
-        List<Pet> pets = petMapper.selectList(
-                new LambdaQueryWrapper<Pet>().eq(Pet::getDeleted, 0));
+        List<Pet> pets = petMapper.selectList(new LambdaQueryWrapper<>());
         for (Pet pet : pets) {
             try {
                 generateSummary(pet.getId(), LocalDate.now().atStartOfDay(),
@@ -135,8 +133,7 @@ public class PetSummaryService {
             return; // 仅周一生成周报
         }
         LocalDate weekStart = today.minusDays(6);
-        List<Pet> pets = petMapper.selectList(
-                new LambdaQueryWrapper<Pet>().eq(Pet::getDeleted, 0));
+        List<Pet> pets = petMapper.selectList(new LambdaQueryWrapper<>());
         for (Pet pet : pets) {
             try {
                 generateSummary(pet.getId(), weekStart.atStartOfDay(),
