@@ -9,7 +9,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        name = {"app.scheduling.enabled", "app.scheduling.alarm-sync-enabled"},
+        havingValue = "true",
+        matchIfMissing = true)
 public class AlarmSyncTask {
 
     private final AlarmService alarmService;

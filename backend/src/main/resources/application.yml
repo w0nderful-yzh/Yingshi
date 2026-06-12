@@ -20,6 +20,7 @@ spring:
 app:
   scheduling:
     enabled: ${SCHEDULING_ENABLED:true}
+    alarm-sync-enabled: ${ALARM_SYNC_ENABLED:true}
   ai:
     mimo:
       api-key: ${MIMO_API_KEY:}
@@ -58,6 +59,10 @@ ezviz:
   oauth:
     redirect-uri: ${EZVIZ_REDIRECT_URI:http://localhost:8080/api/ezviz/oauth/callback}
     frontend-url: ${EZVIZ_FRONTEND_URL:http://localhost:5173}
+  webhook:
+    enabled: ${EZVIZ_WEBHOOK_ENABLED:false}
+    secret: ${EZVIZ_WEBHOOK_SECRET:}
+    max-clock-skew-seconds: ${EZVIZ_WEBHOOK_MAX_CLOCK_SKEW_SECONDS:600}
 
 # 宠物检测配置
 pet:

@@ -21,6 +21,10 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
                 && "/api/ezviz/oauth/callback".equals(request.getRequestURI())) {
             return true;
         }
+        if ("POST".equalsIgnoreCase(request.getMethod())
+                && "/api/ezviz/webhook".equals(request.getRequestURI())) {
+            return true;
+        }
 
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {

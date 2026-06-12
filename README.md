@@ -174,7 +174,8 @@ app:
 ### 萤石回调说明
 
 - 已实现：设备托管 OAuth 授权回调 `/api/ezviz/oauth/callback`
-- 尚未实现：云信令“消息推送 Webhook”；当前萤石告警仍由后端每 60 秒轮询同步
+- 已实现：云信令实时告警 Webhook `/api/ezviz/webhook`，包含 HMAC-SHA1 验签、时间戳防重放、消息幂等、设备归属校验和用户定向 SSE
+- 默认保留每 60 秒轮询作为兜底；确认真实推送稳定后可设置 `ALARM_SYNC_ENABLED=false`
 - 公网回调必须配置域名和 HTTPS，具体环境变量、反向代理和验收步骤见 [docs/deploy.md](./docs/deploy.md)
 
 ## 项目结构

@@ -17,6 +17,8 @@ openssl rand -base64 64
 ```dotenv
 EZVIZ_REDIRECT_URI=https://pet.example.com/api/ezviz/oauth/callback
 EZVIZ_FRONTEND_URL=https://pet.example.com
+EZVIZ_WEBHOOK_ENABLED=true
+EZVIZ_WEBHOOK_SECRET=使用随机字符串并与萤石控制台保持一致
 ```
 
 ## 2. 启动应用
@@ -81,7 +83,55 @@ https://pet.example.com/api/ezviz/oauth/callback
 https://pet.example.com/oauth/ezviz/callback
 ```
 
-“萤石消息推送 Webhook”是另一套能力。当前项目尚未实现该接收接口，告警仍通过 `AlarmSyncTask` 每 60 秒轮询。若答辩要求实时回调，还需要新增独立的 Webhook Controller、签名验签、消息幂等和设备归属校验，再到萤石控制台“云信令/消息推送”配置地址和签名密钥。
+实时告警使用另一条 Webhook：
+
+```text
+https://pet.example.com/api/ezviz/webhook
+```
+
+在萤石开放平台控制台的“云信令 > 消息推送”中：
+
+1. Webhook 地址填写上述 HTTPS 地址。
+2. 消息类型至少勾选 `ys.alarm`。
+3. 设置一个随机签名密钥，并与 `.env` 的 `EZVIZ_WEBHOOK_SECRET` 完全一致。
+4. 失败重试次数建议设置为 `3`。
+5. 将 `EZVIZ_WEBHOOK_ENABLED` 设置为 `true` 并重启后端。
+
+如果数据库是在本次改动前创建的，先执行一次幂等索引迁移：
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T mysql \
+  sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' \
+  < backend/src/main/resources/sql/migration-webhook.sql
+```
+
+项目会验证请求头 `t` 和 `signature`。验签算法为
+`HMAC-SHA1(原始HTTP请求体 + t, EZVIZ_WEBHOOK_SECRET)`，并拒绝超过 10 分钟的请求。
+消息按 `messageId` 去重，只有本地已同步且存在有效用户绑定的设备才会入库；入库后立即通过 SSE 推送给该设备的绑定用户。
+
+可以在服务器本地模拟一次签名推送：
+
+```bash
+SECRET='替换为EZVIZ_WEBHOOK_SECRET'
+T=$(($(date +%s) * 1000))
+BODY='{"header":{"messageId":"local-test-1","messageTime":'"$T"',"type":"ys.alarm","deviceId":"替换为已绑定设备序列号","channelNo":1},"body":{"data":"{\"alarmType\":\"motiondetect\",\"alarmName\":\"Webhook测试告警\"}"}}'
+SIGNATURE=$(printf '%s' "${BODY}${T}" | openssl dgst -sha1 -hmac "$SECRET" | awk '{print $2}')
+
+curl -i http://127.0.0.1:8088/api/ezviz/webhook \
+  -H 'Content-Type: text/plain' \
+  -H "t: $T" \
+  -H "signature: $SIGNATURE" \
+  -H 'message_type: ys.alarm' \
+  --data-binary "$BODY"
+```
+
+正确响应为：
+
+```json
+{"messageId":"local-test-1"}
+```
+
+先保持 `ALARM_SYNC_ENABLED=true`，确认真实推送连续稳定后可改为 `false`，关闭每 60 秒一次的萤石告警轮询。该开关不会关闭宠物检测、异常分析和日报任务。萤石控制台开通消息推送可能需要约两小时生效。
 
 ## 4. 上线验收
 
@@ -98,5 +148,7 @@ curl https://pet.example.com/api/ezviz/oauth/callback
 - 公网无法连接服务器的 `3306` 和 `8080`。
 - 新注册测试用户只能看到自己绑定的设备、告警、检测配置和 AI 报告。
 - OAuth 授权后能回到设备绑定页，并能同步设备、查看直播。
+- 萤石控制台测试推送返回成功，数据库产生一条告警，浏览器在线时立即收到 SSE 提醒。
+- 重复推送同一个 `messageId` 不会生成第二条告警。
 - 重启容器后 MySQL 数据仍保留。
 - 配置每日数据库备份，并实际做一次恢复演练。

@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS alarm_message (
     INDEX idx_alarm_device_serial (device_serial),
     INDEX idx_alarm_time (alarm_time),
     INDEX idx_alarm_read_status (read_status),
-    UNIQUE INDEX uk_alarm_unique (device_serial, alarm_type, alarm_time)
+    INDEX idx_alarm_type_time (device_serial, alarm_type, alarm_time),
+    UNIQUE INDEX uk_alarm_message_id (device_serial, alarm_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='简化告警消息表';
 
 -- 5. 宠物检测配置表

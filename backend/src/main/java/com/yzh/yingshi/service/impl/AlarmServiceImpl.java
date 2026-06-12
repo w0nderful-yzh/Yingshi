@@ -21,7 +21,9 @@ import com.yzh.yingshi.service.EzvizAlarmService;
 import com.yzh.yingshi.vo.AlarmMessageVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
@@ -112,7 +114,7 @@ public class AlarmServiceImpl implements AlarmService {
                 fetched += alarms.size();
 
                 for (Map<String, Object> raw : alarms) {
-                    if (saveIfAbsent(device, raw)) {
+                    if (saveIfAbsent(device, raw, null)) {
                         inserted++;
                     }
                 }
@@ -126,7 +128,38 @@ public class AlarmServiceImpl implements AlarmService {
         return new AlarmSyncResultDTO(targets.size(), fetched, inserted, "同步完成");
     }
 
-    private boolean saveIfAbsent(Device device, Map<String, Object> raw) {
+    @Override
+    @Transactional
+    public boolean receiveEzvizWebhook(Map<String, Object> raw, String rawJson) {
+        String deviceSerial = extractText(raw, "deviceSerial", "deviceId");
+        if (!StringUtils.hasText(deviceSerial)) {
+            log.warn("忽略缺少设备序列号的萤石推送");
+            return false;
+        }
+
+        Device device = deviceMapper.selectOne(
+                new LambdaQueryWrapper<Device>()
+                        .eq(Device::getDeviceSerial, deviceSerial)
+                        .eq(Device::getDeleted, 0)
+                        .last("LIMIT 1"));
+        if (device == null) {
+            log.warn("忽略未同步到本地的萤石推送 deviceSerial={}", deviceSerial);
+            return false;
+        }
+
+        Long activeBindings = userDeviceMapper.selectCount(
+                new LambdaQueryWrapper<UserDevice>()
+                        .eq(UserDevice::getDeviceSerial, deviceSerial)
+                        .eq(UserDevice::getStatus, 1));
+        if (activeBindings == null || activeBindings == 0) {
+            log.warn("忽略没有有效用户绑定的萤石推送 deviceSerial={}", deviceSerial);
+            return false;
+        }
+
+        return saveIfAbsent(device, raw, rawJson);
+    }
+
+    private boolean saveIfAbsent(Device device, Map<String, Object> raw, String rawJson) {
         String alarmId = extractText(raw, "alarmId", "id", "uuid", "alarm_id");
         String alarmType = extractText(raw, "alarmType", "type", "alarm_type");
         String alarmName = extractText(raw, "alarmName", "alarm_name", "name");
@@ -153,10 +186,13 @@ public class AlarmServiceImpl implements AlarmService {
         AlarmMessage entity = new AlarmMessage();
         entity.setDeviceId(device.getId());
         entity.setDeviceSerial(deviceSerial);
-        entity.setChannelNo(device.getChannelNo() != null ? device.getChannelNo() : AlarmConstant.DEFAULT_CHANNEL_NO);
+        entity.setChannelNo(extractInteger(raw, "channelNo", "channel")
+                .orElse(device.getChannelNo() != null
+                        ? device.getChannelNo()
+                        : AlarmConstant.DEFAULT_CHANNEL_NO));
         entity.setAlarmId(alarmId);
-        entity.setAlarmType(alarmType);
-        entity.setAlarmName(alarmName);
+        entity.setAlarmType(StringUtils.hasText(alarmType) ? alarmType : "unknown");
+        entity.setAlarmName(StringUtils.hasText(alarmName) ? alarmName : entity.getAlarmType());
         entity.setAlarmTime(alarmTime);
         entity.setAlarmPicUrl(alarmPicUrl);
         entity.setAlarmContent(alarmContent);
@@ -164,10 +200,14 @@ public class AlarmServiceImpl implements AlarmService {
         entity.setSource(AlarmConstant.SOURCE_EZVIZ);
         entity.setDeleted(AlarmConstant.DELETED_NO);
 
-        try {
-            entity.setRawJson(objectMapper.writeValueAsString(raw));
-        } catch (Exception e) {
-            entity.setRawJson(null);
+        if (StringUtils.hasText(rawJson)) {
+            entity.setRawJson(rawJson);
+        } else {
+            try {
+                entity.setRawJson(objectMapper.writeValueAsString(raw));
+            } catch (Exception e) {
+                entity.setRawJson(null);
+            }
         }
 
         try {
@@ -175,8 +215,7 @@ public class AlarmServiceImpl implements AlarmService {
             // SSE推送新告警
             alarmSseService.broadcastAlarm(entity);
             return true;
-        } catch (Exception e) {
-            // 唯一索引冲突视为重复
+        } catch (DuplicateKeyException e) {
             log.debug("告警插入跳过(可能重复) deviceSerial={}, alarmType={}, alarmTime={}", deviceSerial, alarmType, alarmTime);
             return false;
         }
@@ -388,6 +427,18 @@ public class AlarmServiceImpl implements AlarmService {
             }
         }
         return null;
+    }
+
+    private java.util.Optional<Integer> extractInteger(Map<String, Object> map, String... keys) {
+        String value = extractText(map, keys);
+        if (!StringUtils.hasText(value)) {
+            return java.util.Optional.empty();
+        }
+        try {
+            return java.util.Optional.of(Integer.parseInt(value));
+        } catch (NumberFormatException e) {
+            return java.util.Optional.empty();
+        }
     }
 
     private record AlarmSyncTarget(Long userId, Device device) {

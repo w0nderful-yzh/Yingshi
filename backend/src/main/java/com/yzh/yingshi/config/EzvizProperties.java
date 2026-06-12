@@ -17,9 +17,18 @@ public class EzvizProperties {
 
     private OAuth oauth = new OAuth();
 
+    private Webhook webhook = new Webhook();
+
     @Data
     public static class OAuth {
         private String redirectUri;
         private String frontendUrl;
+    }
+
+    @Data
+    public static class Webhook {
+        private boolean enabled;
+        private String secret;
+        private long maxClockSkewSeconds = 600;
     }
 }
