@@ -258,7 +258,8 @@ Yingshi/
 ## 答辩准备
 
 答辩前的环境检查、推荐演示主线、外部服务故障预案和常见追问见
-[docs/defense-checklist.md](./docs/defense-checklist.md)。
+[docs/defense-checklist.md](./docs/defense-checklist.md)，完整答辩文稿见
+[docs/defense-script.md](./docs/defense-script.md)。
 
 ## 许可证
 
