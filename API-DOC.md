@@ -613,9 +613,94 @@
 
 ---
 
+## 七、实时告警与萤石授权
+
+### 42. 订阅告警 SSE `GET /api/alarms/stream`
+
+浏览器 `EventSource` 无法设置 Authorization Header，因此该接口支持通过
+`token` 查询参数携带 JWT。连接建立后，服务端向当前用户定向推送告警事件。
+
+### 43. 获取萤石授权地址 `GET /api/ezviz/oauth/auth-url`
+
+返回带签名和有效期的 OAuth 授权地址，仅 `ADMIN` / `OPERATOR` 可调用。
+
+### 44. 前端提交授权回调 `POST /api/ezviz/oauth/callback`
+
+请求体包含 `authCode`、`state`、`deviceSerials` 和 `deviceTrustId`。该接口需要
+JWT，并校验 `state` 签名与当前用户是否一致。
+
+### 45. 萤石平台直接回调 `GET /api/ezviz/oauth/callback`
+
+萤石平台使用的公网回调，不要求 JWT。后端校验 `state` 后换取 token、绑定设备，
+再 302 跳转至前端回调页。无有效 `state` 时仅用于平台回调地址验证。
+
+### 46. 查询授权设备 `GET /api/ezviz/oauth/devices`
+
+返回当前用户已绑定的萤石设备。
+
+### 47. 解绑设备 `DELETE /api/ezviz/oauth/devices/{id}`
+
+解绑当前用户的指定设备，仅 `ADMIN` / `OPERATOR` 可调用。
+
+### 48. 查询授权状态 `GET /api/ezviz/oauth/status`
+
+响应 `data.authorized` 表示当前用户是否存在有效萤石 OAuth 账户。
+
+### 49. 撤销授权 `DELETE /api/ezviz/oauth/revoke`
+
+撤销当前用户的 OAuth 账户并停用其设备绑定。
+
+### 50. 萤石实时告警 Webhook `POST /api/ezviz/webhook`
+
+仅在 `EZVIZ_WEBHOOK_ENABLED=true` 时注册。该接口不使用 JWT，而是校验请求头
+`t`、`signature`、`message_type`，并执行时间戳防重放、HMAC-SHA1 验签和消息幂等。
+
+---
+
+## 八、宠物 AI
+
+### 51. 多模态行为分析 `POST /api/pet-ai/analyze`
+
+请求体可包含 `petId`、`imageUrl`、`detectionJson` 和 `userQuestion`。使用 MiMo
+分析图片，并返回风险等级、观察行为、判断依据、建议和不确定性。
+
+### 52. 健康建议 `GET /api/pet-ai/health-advice`
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| petName | String | 是 | 宠物名称 |
+| recentRecords | String | 否 | 近期活动记录 |
+
+### 53. 宠物问答 `POST /api/pet-ai/chat`
+
+查询参数 `message` 为用户问题，响应 `data` 为 DeepSeek 生成的文本。
+
+### 54. 生成 AI 事件报告 `POST /api/pet-ai/reports/generate`
+
+基于告警、检测记录或图片生成可追溯报告。详细请求模型以 Swagger 中的
+`PetAiReportGenerateRequest` 为准。
+
+### 55. 查询 AI 报告 `GET /api/pet-ai/reports`
+
+支持可选参数 `petId`、`sourceType`、`riskLevel`。
+
+### 56. AI 报告详情 `GET /api/pet-ai/reports/{id}`
+
+返回当前用户拥有的单份 AI 报告。
+
+### 57. 生成宠物日报 `POST /api/pet-ai/reports/daily-summary`
+
+查询参数 `petId` 为宠物 ID。
+
+### 58. 生成宠物周报 `POST /api/pet-ai/reports/weekly-summary`
+
+查询参数 `petId` 为宠物 ID。
+
+---
+
 ## 附录: 关键提醒
 
-1. **认证**: 除注册/登录外, 所有接口必须携带 `Authorization: Bearer <token>`, token有效期 **2小时**
+1. **认证**: 除注册、登录、萤石 OAuth GET 回调和 Webhook 外，接口必须携带 `Authorization: Bearer <token>`，token 有效期 **2小时**
 2. **视频相关接口**: 直播/回放地址有有效期, 过期需重新获取
 3. **AI检测接口**: `/detect` 和 `/analyze` 会调用AI模型, 响应时间较长, 前端建议设置 **30秒以上超时**, 并加loading状态
 4. **同步接口**: `/devices/sync` 和 `/alarms/sync` 会请求萤石云API, 有频率限制, 不要高频调用

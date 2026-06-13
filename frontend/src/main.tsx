@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { router } from '@/router';
+import AppErrorBoundary from '@/components/AppErrorBoundary';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -30,7 +31,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         },
       }}
     >
-      <RouterProvider router={router} />
+      <AppErrorBoundary>
+        <RouterProvider router={router} />
+      </AppErrorBoundary>
     </ConfigProvider>
   </React.StrictMode>
 );

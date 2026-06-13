@@ -790,6 +790,7 @@ body {
   align-items: center;
   justify-content: center;
 }
+.auth-scene--register { min-height: auto; }
 
 /* ================================================================== */
 /*  登录卡片容器 — 第二阶段过渡                                           */
@@ -827,6 +828,7 @@ body {
   box-shadow: 0 8px 32px rgba(139, 92, 246, 0.10), 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
+.warm-glass-card--register { width: 400px; }
 .warm-glass-card__header { padding: 28px 32px 0; }
 .warm-glass-card__title {
   color: #1e293b;
@@ -955,6 +957,80 @@ body {
   transition: color 0.3s ease-in-out;
 }
 .auth-back-btn:hover { color: #64748b; }
+
+@media (max-width: 900px) {
+  .auth-layout {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .auth-layout__content {
+    box-sizing: border-box;
+    padding: 24px 0;
+  }
+  .hero-section {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    padding: 88px 32px 40px;
+    justify-content: center;
+  }
+  .hero-left {
+    flex: none;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+  .hero-title {
+    font-size: 2.75rem;
+    margin-top: 0;
+  }
+  .hero-desc { margin-bottom: 30px; }
+  .hero-right { display: none; }
+  .auth-card-wrapper {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 24px;
+  }
+  .warm-glass-card,
+  .warm-glass-card--register {
+    width: min(100%, 400px);
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-logo {
+    top: 22px;
+    left: 24px;
+    font-size: 1.45rem;
+  }
+  .hero-logo svg {
+    width: 27px;
+    height: 27px;
+  }
+  .hero-section { padding-inline: 20px; }
+  .hero-title {
+    font-size: 2.15rem;
+    letter-spacing: 1px;
+  }
+  .hero-desc {
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+  .hero-desc br { display: none; }
+  .hero-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .start-btn,
+  .secondary-btn {
+    width: min(100%, 280px);
+    padding: 13px 24px;
+    font-size: 1rem;
+  }
+  .warm-glass-card__header { padding: 24px 24px 0; }
+  .warm-glass-card__body { padding: 20px 24px 24px; }
+}
 
 /* ================================================================== */
 /*  BorderBeam — 边框环绕光束                                           */

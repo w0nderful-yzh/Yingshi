@@ -47,27 +47,30 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<'devices' | 'alarms' | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const [deviceList, petList, configList, alarmList] = await Promise.all([
-        getDevices().catch(() => []),
-        getPets().catch(() => []),
-        getDetectionConfigs().catch(() => []),
-        getAlarms({ readStatus: 0 }).catch(() => []),
+      await Promise.all([
+        getDevices().then(setDevices).catch(() => undefined),
+        getPets().then(setPets).catch(() => undefined),
+        getDetectionConfigs().then(setConfigs).catch(() => undefined),
+        getAlarms({ readStatus: 0 })
+          .then((alarmList) => setAlarms(alarmList.slice(0, 6)))
+          .catch(() => undefined),
       ]);
-      setDevices(deviceList);
-      setPets(petList);
-      setConfigs(configList);
-      setAlarms(alarmList.slice(0, 6));
       fetchUnreadCount();
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [fetchUnreadCount]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
+    const refreshTimer = window.setInterval(() => {
+      void fetchData(false);
+    }, 30_000);
+
+    return () => window.clearInterval(refreshTimer);
   }, [fetchData]);
 
   const handleSync = async (type: 'devices' | 'alarms') => {

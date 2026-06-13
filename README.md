@@ -12,7 +12,7 @@
 - **AI 宠物检测** — 定时截取摄像头画面，调用萤石 AI 宠物检测算法，判断宠物是否在安全区域内，越界自动报警
 - **异常行为分析** — 三种异常模式检测：宠物消失、异常活跃、长时间静止，各自独立冷却机制
 - **报警管理** — 萤石云端报警 + 本地 AI 检测报警双来源，支持已读标记、筛选、删除
-- **AI 宠物助手** — 基于 DeepSeek 大模型的宠物行为分析、健康建议、自由问答
+- **AI 宠物助手** — 基于 MiMo 多模态模型分析监控图片，使用 DeepSeek 提供健康建议与自由问答
 
 ## 技术栈
 
@@ -48,7 +48,8 @@
 ### 外部服务
 
 - **萤石开放平台** — 设备管理、视频直播/回放、云录像、AI 宠物检测算法、截图
-- **DeepSeek API** — 大语言模型，用于宠物行为分析与智能问答
+- **小米 MiMo API** — 多模态模型，用于监控图片与事件证据分析
+- **DeepSeek API** — 大语言模型，用于健康建议、周期总结与智能问答
 
 ## 快速开始
 
@@ -218,14 +219,14 @@ Yingshi/
 │       └── components/                   # 可复用组件
 │
 ├── docker-compose.yml                    # Docker 编排配置
-├── docs/                                 # 文档（待补充）
+├── docs/                                 # 产品、数据库、部署与答辩文档
 ├── API-DOC.md                            # 完整 API 接口文档
 └── README.md
 ```
 
 ## 数据库设计
 
-系统共 9 张表：
+系统共 10 张表：
 
 | 表名 | 说明 |
 |------|------|
@@ -236,6 +237,7 @@ Yingshi/
 | `pet_detection_config` | 宠物检测配置（关联宠物与设备，设定阈值参数） |
 | `pet_safe_zone` | 安全区域（矩形 / 多边形，百分比坐标） |
 | `pet_detection_record` | 检测记录（坐标、是否在安全区内、快照、AI 原始结果） |
+| `pet_ai_report` | AI 事件分析报告与周期总结 |
 | `user_ezviz_account` | 用户萤石 OAuth 授权账户 |
 | `user_device` | 用户设备绑定关系 |
 
@@ -253,74 +255,27 @@ Yingshi/
 
 完整的接口文档见 [API-DOC.md](./API-DOC.md)，涵盖全部 Controller 的请求/响应格式、错误码及认证说明。
 
+## 答辩准备
+
+答辩前的环境检查、推荐演示主线、外部服务故障预案和常见追问见
+[docs/defense-checklist.md](./docs/defense-checklist.md)。
+
 ## 许可证
 
 本项目仅供学习与个人使用。
 
 ---
 
-## TODO
+## 当前状态与后续规划
 
-### 功能需求
+当前 Demo 已完成 OAuth 设备绑定、角色与设备级数据隔离、生产 profile、
+Swagger 环境隔离、前端路由懒加载、全局渲染错误兜底、基础 CI 与部署文档。
 
-- [ ] 设备分组与房间管理
-- [ ] 多宠物同时检测与追踪
-- [ ] 报警推送通知（WebSocket / 短信 / 邮件）
-- [ ] 宠物活动数据统计与可视化图表
-- [ ] 宠物喂食 / 用药提醒与日程管理
-- [ ] 多用户家庭成员协作与权限细粒度控制
-- [x] C 端设备托管/授权模式 — 用户通过萤石 OAuth 授权页绑定自己的设备，后端用 auth_code 换取托管 token，建立用户-设备权限关系
-- [ ] 云端录像自动回放关联报警事件
-- [ ] 检测算法参数自动调优
-- [ ] **AI 优化**
-  - [ ] 拆分 system prompt — 行为分析、健康建议、自由问答各自独立 prompt，行为分析要求返回结构化 JSON（状态 / 风险等级 / 建议）
-  - [ ] 修正行为分析的误导描述 — 当前 prompt 让 LLM "分析监控截图" 但实际只传了 URL 字符串，LLM 无法访问图片；改为基于检测数据（坐标、轨迹、行为模式）做文本分析，或接入多模态模型传图片 base64
-  - [ ] prompt 外部化 — 将 system prompt 从 Java 硬编码移至 application.yml 或数据库，支持热更新无需重新编译
-  - [ ] 添加 token 控制 — 配置 maxTokens 限制输出长度；对 `/chat` 和 `/health-advice` 接口添加输入长度校验
-  - [ ] LLM 调用超时与重试 — 为 DeepSeek API 调用设置 connect/read timeout；对 429 和 503 做指数退避重试
-  - [ ] 接口频率限制 — 为 `/chat` 等 LLM 接口添加频率限制，防止滥用消耗 API 额度
-  - [ ] 错误信息脱敏 — `LlmClient.mapError` 当前会把原始异常 message 暴露给前端，需改为返回通用错误提示
-  - [ ] 日志级别调整 — LLM 请求/响应日志当前为 INFO 级别，生产环境应降为 DEBUG
-- [ ] 国际化（i18n）支持
-- [ ] CI/CD 流水线配置
-- [ ] 完善 `docs/` 目录下的产品说明、部署文档、数据库设计文档
+下一阶段优先级：
 
-### 安全加固
-
-- [ ] JWT 密钥强度提升 — 当前密钥为可读英文短语（36 字节），熵值过低；应使用 64 字节以上密码学随机密钥
-- [ ] 全局异常处理器脱敏 — `GlobalExceptionHandler` 将 `exception.getMessage()` 直接返回给客户端，可能泄露内部信息
-- [ ] 生产环境关闭 SQL 日志 — MyBatis-Plus 配置了 `StdOutImpl`，每条 SQL 均打印到 stdout
-- [ ] 生产环境禁用 Swagger — `springdoc.swagger-ui.enabled` 未按环境区分
-- [ ] 接口数据隔离（IDOR 修复） — 部分接口未按当前用户过滤数据，任意用户可访问全部设备和报警
-- [ ] 认证接口限流 — `/api/auth/login` 和 `/api/auth/register` 无限流措施
-- [ ] JWT 令牌撤销机制 — `logout()` 为空操作，令牌签发后无法主动失效；考虑引入 Redis 令牌黑名单
-- [ ] 注册接口权限控制 — 当前任何人可自行注册账号，生产环境应限制为管理员创建或增加邮箱验证
-- [ ] CORS 配置 — `WebMvcConfig` 未配置跨域策略，前后端分离部署时会出问题
-
-### 性能优化
-
-- [ ] 统一 RestTemplate Bean — 多处 `new RestTemplate()` 分散在各服务中，无超时配置、无连接池
-- [ ] 列表接口分页 — 所有列表接口均无分页，`selectList()` 返回全量数据
-- [ ] EzvizTokenService 线程安全 — `cachedToken` 和 `expireTime` 为普通字段无同步保护
-- [ ] 定时任务线程池 — `@EnableScheduling` 默认单线程，多个定时任务互相阻塞
-- [ ] 外部 API 熔断重试 — 萤石 API 调用无重试、无熔断器、无降级
-- [ ] 报警同步 N+1 查询 — `AlarmServiceImpl.saveIfAbsent()` 对每条报警逐条查重再逐条插入
-- [ ] 检测记录表增长控制 — `pet_detection_record` 无 TTL / 分区 / 归档策略
-- [ ] 前端路由懒加载 — 所有页面组件同步导入，应使用 `React.lazy()` 按路由拆分
-
-### 代码质量
-
-- [ ] 生产环境异常日志规范 — `GlobalExceptionHandler` 使用 `exception.printStackTrace()` 而非日志框架
-- [ ] 逻辑删除一致性 — `syncFromEzviz()` 可能导致已逻辑删除的设备被重新同步复活
-- [ ] VO 构建方式统一 — 部分手写 setter，无 MapStruct
-- [ ] 前端消除 `any` 类型 — 所有 API 模块 `request.get<any, T>(...)` 第一个泛参均为 `any`
-- [ ] 前端错误处理统一 — 部分页面静默吞错，无全局 Error Boundary
-- [ ] 前端清理死代码 — `App.tsx` 返回 null、`BusinessCode` 枚举未引用、残留 `console.log`
-
-### 架构改进
-
-- [ ] 多环境配置分离 — 仅一个 `application.yml`，无 dev/staging/prod profile
-- [ ] 分布式锁支持 — 定时任务无分布式锁，多实例部署导致重复检测和重复报警
-- [ ] 前端全局 Error Boundary — 无 React Error Boundary，渲染异常直接白屏
-- [ ] 前端实体数据共享 — 宠物列表等数据在多个页面各自独立请求，无共享缓存
-- [ ] 数据库复合索引 — `pet_detection_record` 和 `alarm_message` 缺少关键复合索引
+1. 增加前端组件测试和关键业务端到端测试。
+2. 为登录、注册和 AI 接口增加限流，完善 JWT 主动撤销。
+3. 为外部 API 增加统一超时、重试、熔断与连接池配置。
+4. 为检测记录增加分页、归档和数据增长控制。
+5. 增加宠物活动趋势图、消息通知和报警关联录像。
+6. 多实例部署时为定时任务增加分布式锁。

@@ -37,7 +37,7 @@ public class LlmClient {
      * @return LLM 回复内容
      */
     public String chat(String systemPrompt, String userMessage) {
-        log.info("LLM 请求: systemPrompt={}, userMessage={}", truncate(systemPrompt), truncate(userMessage));
+        log.debug("LLM 请求: systemPrompt={}, userMessage={}", truncate(systemPrompt), truncate(userMessage));
 
         try {
             ChatResponse response = chatClient.prompt()
@@ -47,7 +47,7 @@ public class LlmClient {
                     .chatResponse();
 
             String content = extractContent(response);
-            log.info("LLM 响应: {}", truncate(content));
+            log.debug("LLM 响应: {}", truncate(content));
             return content;
 
         } catch (Exception e) {
@@ -63,10 +63,10 @@ public class LlmClient {
      * @return Mono 响应内容
      */
     public Mono<String> chatAsync(String systemPrompt, String userMessage) {
-        log.info("LLM 异步请求: systemPrompt={}, userMessage={}", truncate(systemPrompt), truncate(userMessage));
+        log.debug("LLM 异步请求: systemPrompt={}, userMessage={}", truncate(systemPrompt), truncate(userMessage));
 
         return Mono.fromCallable(() -> chat(systemPrompt, userMessage))
-                .doOnNext(content -> log.info("LLM 异步响应: {}", truncate(content)));
+                .doOnNext(content -> log.debug("LLM 异步响应: {}", truncate(content)));
     }
 
     // ==================== 响应内容提取 ====================
@@ -140,7 +140,7 @@ public class LlmClient {
         }
 
         log.error("LLM 调用异常: {}", e.getMessage(), e);
-        return new BusinessException(BusinessCode.MODEL_SERVICE_ERROR, "模型调用异常: " + e.getMessage());
+        return new BusinessException(BusinessCode.MODEL_SERVICE_ERROR, "模型服务调用失败，请稍后重试");
     }
 
     private boolean hasCause(Throwable e, Class<? extends Throwable> causeType) {

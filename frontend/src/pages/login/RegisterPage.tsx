@@ -29,8 +29,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-scene" style={{ minHeight: 'auto' }}>
-      <div className="warm-glass-card" style={{ width: 400 }}>
+    <div className="auth-scene auth-scene--register">
+      <div className="warm-glass-card warm-glass-card--register">
         {/* 卡片头 */}
         <div className="warm-glass-card__header">
           <h2 className="warm-glass-card__title">注册账号</h2>
