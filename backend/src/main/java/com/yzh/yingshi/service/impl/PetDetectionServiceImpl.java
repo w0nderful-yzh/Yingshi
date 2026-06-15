@@ -346,6 +346,17 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         Map<Long, String> deviceNameMap = new HashMap<>();
         deviceMapper.selectBatchIds(deviceIds).forEach(d -> deviceNameMap.put(d.getId(), d.getDeviceName()));
 
+        Set<Long> recordConfigIds = records.stream()
+                .map(PetDetectionRecord::getDetectionConfigId)
+                .collect(Collectors.toSet());
+        Map<Long, List<PetSafeZoneVO>> zoneMap = safeZoneMapper.selectList(
+                        new LambdaQueryWrapper<PetSafeZone>()
+                                .in(PetSafeZone::getDetectionConfigId, recordConfigIds))
+                .stream()
+                .collect(Collectors.groupingBy(
+                        PetSafeZone::getDetectionConfigId,
+                        Collectors.mapping(this::toZoneVO, Collectors.toList())));
+
         return records.stream().map(r -> {
             PetDetectionRecordVO vo = new PetDetectionRecordVO();
             vo.setId(r.getId());
@@ -363,6 +374,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
             vo.setInSafeZone(r.getInSafeZone());
             vo.setAlarmTriggered(r.getAlarmTriggered());
             vo.setSnapshotUrl(r.getSnapshotUrl());
+            vo.setSafeZones(zoneMap.getOrDefault(r.getDetectionConfigId(), Collections.emptyList()));
             vo.setCreatedAt(r.getCreatedAt());
             return vo;
         }).collect(Collectors.toList());
@@ -494,6 +506,7 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         result.setDeviceId(device.getId());
         result.setDeviceName(device.getDeviceName());
         result.setDetectTime(now);
+        result.setSafeZones(zones.stream().map(this::toZoneVO).collect(Collectors.toList()));
 
         // 1. 获取截图
         String snapshotUrl = null;
@@ -529,6 +542,10 @@ public class PetDetectionServiceImpl implements PetDetectionService {
         PetAiDetector.PetDetection detection = detections.stream()
                 .max(Comparator.comparingDouble(PetAiDetector.PetDetection::getConfidence))
                 .orElse(detections.get(0));
+        result.setPetCoordX(detection.getX());
+        result.setPetCoordY(detection.getY());
+        result.setPetWidth(detection.getWidth());
+        result.setPetHeight(detection.getHeight());
 
         // 4. 判断是否在安全区域内
         boolean inSafeZone = true;

@@ -33,11 +33,11 @@ function toZoneData(zone: PetSafeZoneVO): ZoneData {
     id: zone.id,
     zoneName: zone.zoneName,
     zoneType: zone.zoneType,
-    rectLeft: zone.rectLeft,
-    rectTop: zone.rectTop,
-    rectRight: zone.rectRight,
-    rectBottom: zone.rectBottom,
-    polygonPoints: zone.polygonPoints,
+    rectLeft: zone.rectLeft ?? undefined,
+    rectTop: zone.rectTop ?? undefined,
+    rectRight: zone.rectRight ?? undefined,
+    rectBottom: zone.rectBottom ?? undefined,
+    polygonPoints: zone.polygonPoints ?? undefined,
   };
 }
 

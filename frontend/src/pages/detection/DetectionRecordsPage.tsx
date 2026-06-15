@@ -223,6 +223,7 @@ export default function DetectionRecordsPage() {
                   petHeight={detailRecord.petHeight}
                   petName={detailRecord.petName}
                   imageUrl={detailRecord.snapshotUrl}
+                  safeZones={detailRecord.safeZones}
                 />
               </div>
             )}
@@ -234,12 +235,21 @@ export default function DetectionRecordsPage() {
                 安全区域内: {detailRecord.inSafeZone === 1 ? '是' : '否'}
               </div>
               <div>告警触发: {detailRecord.alarmTriggered === 1 ? '是' : '否'}</div>
-              <div>
-                宠物坐标: ({detailRecord.petCoordX.toFixed(1)}, {detailRecord.petCoordY.toFixed(1)})
-              </div>
-              <div>
-                宠物尺寸: {detailRecord.petWidth.toFixed(1)} x {detailRecord.petHeight.toFixed(1)}
-              </div>
+              {detailRecord.petCoordX != null && detailRecord.petCoordY != null ? (
+                <div>
+                  宠物坐标: ({detailRecord.petCoordX.toFixed(1)}, {detailRecord.petCoordY.toFixed(1)})
+                </div>
+              ) : (
+                <div>宠物坐标: 未检测到宠物</div>
+              )}
+              {detailRecord.petWidth != null && detailRecord.petHeight != null ? (
+                <div>
+                  宠物尺寸: {detailRecord.petWidth.toFixed(1)} x {detailRecord.petHeight.toFixed(1)}
+                </div>
+              ) : (
+                <div>宠物尺寸: -</div>
+              )}
+              <div>安全区域: {detailRecord.safeZones?.length || 0} 个</div>
             </div>
           </div>
         )}

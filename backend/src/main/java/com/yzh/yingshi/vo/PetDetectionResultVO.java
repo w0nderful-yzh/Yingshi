@@ -3,6 +3,7 @@ package com.yzh.yingshi.vo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class PetDetectionResultVO {
@@ -17,11 +18,18 @@ public class PetDetectionResultVO {
 
     private LocalDateTime detectTime;
 
+    private Double petCoordX;
+    private Double petCoordY;
+    private Double petWidth;
+    private Double petHeight;
+
     private Boolean inSafeZone;
 
     private Boolean alarmTriggered;
 
     private String snapshotUrl;
+
+    private List<PetSafeZoneVO> safeZones;
 
     private String message;
 }

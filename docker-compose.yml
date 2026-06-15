@@ -4,6 +4,7 @@ services:
     container_name: yingshi-mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --character-set-client-handshake=FALSE
     environment:
+      TZ: ${APP_TIME_ZONE:-Asia/Shanghai}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: yingshi
       MYSQL_USER: ${SPRING_DATASOURCE_USERNAME:-yzh666}
@@ -28,6 +29,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: ${APP_TIME_ZONE:-Asia/Shanghai}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Shanghai}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/yingshi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-yzh666}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}

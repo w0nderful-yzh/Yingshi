@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Dropdown, Empty, Image, message, Modal, Switch, Tag } from 'antd';
+import { Button, Dropdown, Empty, message, Modal, Switch, Tag } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -23,6 +23,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import type { PetDetectionConfigVO, PetDetectionResultVO } from '@/types';
 import { canWriteRole } from '@/utils/permission';
+import PetBoundingBox from '@/components/PetBoundingBox';
 
 export default function DetectionConfigListPage() {
   const navigate = useNavigate();
@@ -293,7 +294,17 @@ export default function DetectionConfigListPage() {
               <span><small>告警</small><strong>{detectResult.alarmTriggered ? '已触发' : '未触发'}</strong></span>
             </div>
             {detectResult.snapshotUrl && (
-              <Image className="task-result__image" src={detectResult.snapshotUrl} alt="检测快照" />
+              <div className="text-center">
+                <PetBoundingBox
+                  petCoordX={detectResult.petCoordX}
+                  petCoordY={detectResult.petCoordY}
+                  petWidth={detectResult.petWidth}
+                  petHeight={detectResult.petHeight}
+                  petName={detectResult.petName}
+                  imageUrl={detectResult.snapshotUrl}
+                  safeZones={detectResult.safeZones}
+                />
+              </div>
             )}
           </div>
         )}

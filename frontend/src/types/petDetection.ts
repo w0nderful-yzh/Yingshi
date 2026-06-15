@@ -35,11 +35,11 @@ export interface PetSafeZoneVO {
   detectionConfigId: number;
   zoneName: string;
   zoneType: 'RECTANGLE' | 'POLYGON';
-  rectLeft: number;
-  rectTop: number;
-  rectRight: number;
-  rectBottom: number;
-  polygonPoints: Array<{ x: number; y: number }>;
+  rectLeft: number | null;
+  rectTop: number | null;
+  rectRight: number | null;
+  rectBottom: number | null;
+  polygonPoints: Array<{ x: number; y: number }> | null;
   createdAt: string;
 }
 
@@ -63,13 +63,14 @@ export interface PetDetectionRecordVO {
   deviceName: string;
   deviceSerial: string;
   detectTime: string;
-  petCoordX: number;
-  petCoordY: number;
-  petWidth: number;
-  petHeight: number;
+  petCoordX: number | null;
+  petCoordY: number | null;
+  petWidth: number | null;
+  petHeight: number | null;
   inSafeZone: number;
   alarmTriggered: number;
   snapshotUrl: string;
+  safeZones: PetSafeZoneVO[];
   createdAt: string;
 }
 
@@ -80,9 +81,14 @@ export interface PetDetectionResultVO {
   deviceId: number;
   deviceName: string;
   detectTime: string;
+  petCoordX: number | null;
+  petCoordY: number | null;
+  petWidth: number | null;
+  petHeight: number | null;
   inSafeZone: boolean;
   alarmTriggered: boolean;
   snapshotUrl: string;
+  safeZones: PetSafeZoneVO[];
   message: string;
 }
 

@@ -2,6 +2,9 @@ spring:
   application:
     name: yingshi
 
+  jackson:
+    time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
+
   ai:
     openai:
       api-key: ${LLM_API_KEY:}
